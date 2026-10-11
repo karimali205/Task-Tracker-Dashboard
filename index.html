@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task Tracker Dashboard_Karim Ali</title>
+<!-- ========================================================================= -->
+<!-- ======= SYSTEM CONFIGURATION SECTION (إعدادات المستخدمين والصلاحيات) ======= -->
+<!-- ========================================================================= -->
+<script>
+// =====================================================================
+// الأدوار (role):
+//   "User"       = مستخدم عادي (يشوف تاسكاته هو بس)
+//   "Admin"      = أدمن (يشوف ويسند ليوزرز التيم بتاعه بس - المحددين في managedUsers)
+//   "UpperAdmin" = أبر أدمن (يشوف كل اليوزرز وكل التاسكات)
+// managedUsers (للأدمن فقط): قائمة الـ userId اللي الأدمن ده بيشوفهم ويسند لهم.  ["all"] = كل اليوزرز.
+// تعديل أي حاجة هنا بيتطبق فوراً (القائمة دي مش بتتخزن في ملف الـ JSON).
+// تقسيم التيمات تحت مجرد مثال - عدّله حسب التيمات الفعلية.
+// =====================================================================
+const DEFAULT_TEAM_MEMBERS = [
+  { name: "Demo Admin (Team A)", userId: "demo_admin", role: "Admin", password: "demo123", managedUsers: ["alex", "sara", "omar"] },
+  { name: "Demo Upper Admin", userId: "demo_upper", role: "UpperAdmin", password: "demo123" },
+  { name: "Demo Admin (Team B)", userId: "demo_admin2", role: "Admin", password: "demo123", managedUsers: ["lina", "youssef"] },
+  { name: "Alex Morgan", userId: "alex", role: "User" },
+  { name: "Sara Khaled", userId: "sara", role: "User" },
+  { name: "Omar Nabil", userId: "omar", role: "User" },
+  { name: "Lina Hassan", userId: "lina", role: "User" },
+  { name: "Youssef Adel", userId: "youssef", role: "User" }
+];
+
+// DEMO_MODE = true : نسخة العرض على GitHub Pages (من غير سيرفر - الداتا بتتحفظ في متصفح الزائر بس)
+// DEMO_MODE = false: النسخة الحقيقية مع MIS_Backend_Server.ps1
+const DEMO_MODE = true;
+
+// الدخول التلقائي: ملف الـ bat بيبعت اسم مستخدم Citrix في رابط الصفحة (?user=...) والصفحة بتتعرف عليه وتدخّله.
+// لو الصفحة اتفتحت بدون الـ bat أو المستخدم مش مسجل هنا: شاشة اللوجين العادية بتظهر.
+const AUTO_LOGIN_FROM_WINDOWS_USER = true;
+// true  = الأدمن والأبر أدمن بيدخلوا مباشرة من غير باسورد.
+// false = بيتعرف عليهم تلقائياً بس بيطلب منهم الباسورد.
+const ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD = false;
+
+// تنبيه الأدمن قبل ديدلاين التاسك (اللي هو أسنده) بكام ساعة
+const REMINDER_HOURS_BEFORE_DEADLINE = 2;
+
+// عنوان السيرفر المحلي (لازم يطابق $port في MIS_Backend_Server.ps1)
+const SERVER_BASE_URL = "http://localhost:8080/";
+
+// المهام الروتينية الافتراضية لكل يوزر جديد
+const DEFAULT_DAILY_TASKS = ["Send Mail FCR", "Check All Mail"];
+const DEFAULT_WEEKLY_TASKS = [{ name: "Send Mail Weekly", day: "Monday" }];
+const DEFAULT_MONTHLY_TASKS = [{ name: "QBR Request", dayOfMonth: 15 }];   // dayOfMonth = اليوم من الشهر (1 - 31)
+</script>
+<!-- ========================================================================= -->
+<style>
+:root {
+  --bg-color: #f4f5f7;
+  --card-bg: #ffffff;
+  --text-main: #1f2937;
+  --text-muted: #4b5563;
+  --accent-primary: #e1001a;
+  --accent-success: #10b981;
+  --border-color: #d1d5db;
+  --input-bg: #ffffff;
+  --btn-secondary-bg: #374151;
+  --btn-secondary-text: #ffffff;
+  --calendar-icon-filter: none;
+  --desc-box-bg: rgba(0, 0, 0, 0.03);
+}
+
+body.theme-dark {
+  --bg-color: #0d1117;
+  --card-bg: #161b22;
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --border-color: #30363d;
+  --input-bg: #21262d;
+  --accent-primary: #f85149;
+  --btn-secondary-bg: #30363d;
+  --btn-secondary-text: #c9d1d9;
+  --calendar-icon-filter: invert(1);
+  --desc-box-bg: rgba(255, 255, 255, 0.04);
+}
+
+body.theme-blue {
+  --bg-color: #f0f4f8;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --accent-primary: #0284c7;
+  --border-color: #cbd5e1;
+  --input-bg: #ffffff;
+  --btn-secondary-bg: #334155;
+  --btn-secondary-text: #ffffff;
+  --calendar-icon-filter: none;
+  --desc-box-bg: rgba(2, 132, 199, 0.04);
+}
+
+body.theme-emerald {
+  --bg-color: #f0fdf4;
+  --card-bg: #ffffff;
+  --text-main: #064e3b;
+  --text-muted: #047857;
+  --accent-primary: #059669;
+  --border-color: #a7f3d0;
+  --input-bg: #ffffff;
+  --btn-secondary-bg: #065f46;
+  --btn-secondary-text: #ffffff;
+  --calendar-icon-filter: none;
+  --desc-box-bg: rgba(5, 150, 105, 0.04);
+}
+
+body.theme-purple {
+  --bg-color: #0f0d1b;
+  --card-bg: #1d1933;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --accent-primary: #8b5cf6;
+  --border-color: #3730a3;
+  --input-bg: #282347;
+  --btn-secondary-bg: #312e81;
+  --btn-secondary-text: #ffffff;
+  --calendar-icon-filter: invert(1);
+  --desc-box-bg: rgba(139, 92, 246, 0.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: var(--bg-color); color: var(--text-main); padding: 30px; transition: background 0.3s, color 0.3s; }
+
+.login-screen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.login-card-container { background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 40px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); text-align: center; }
+.login-card-container h2 { font-size: 22px; color: var(--accent-primary); font-weight: 700; margin-bottom: 25px; }
+.login-error-msg { color: #f85149; font-size: 13px; font-weight: 600; margin-top: 12px; display: none; background-color: rgba(248, 81, 73, 0.1); padding: 8px; border-radius: 6px; border: 1px solid #f85149; }
+
+header { margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+header h1 { font-size: 28px; color: var(--accent-primary); font-weight: 700; }
+header p { color: var(--text-muted); font-size: 14px; margin-top: 5px; }
+.header-profile-block { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.user-badge { background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 30px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+.role-indicator { padding: 3px 10px; border-radius: 12px; font-size: 11px; color: #fff; font-weight: bold; }
+.role-upperadmin { background-color: #8b5cf6; }
+.role-admin { background-color: #0284c7; }
+.role-user { background-color: #4b5563; }
+
+.btn-header-action { background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+.btn-header-action:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+.nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 1px; flex-wrap: wrap; }
+.tab-btn { background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px; margin-bottom: 10px; transition: all 0.2s; }
+.tab-btn.active { color: #ffffff; background-color: var(--accent-primary); border-color: var(--accent-primary); }
+
+.actions-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-select { background-color: var(--input-bg); border: 1px solid var(--border-color); padding: 9px 14px; border-radius: 8px; color: var(--text-main); font-size: 14px; font-weight: 600; outline: none; }
+
+.btn { background-color: var(--accent-primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: opacity 0.2s; }
+.btn:hover { opacity: 0.9; }
+.btn-danger-outline { background-color: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary); }
+.btn-danger-outline:hover { background-color: var(--accent-primary); color: white; }
+
+.card-actions-wrapper { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.btn-card-action { padding: 5px 10px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; }
+.btn-delete-action { background-color: #dc2626; color: white; }
+.btn-delete-action:hover { background-color: #b91c1c; }
+.btn-email-action { background-color: var(--accent-primary); color: white; }
+.btn-email-action:hover { opacity: 0.9; }
+
+.kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
+@media (max-width: 1024px) { .kanban-board { grid-template-columns: 1fr; } }
+.kanban-column { background-color: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); min-height: 550px; }
+.kanban-column.drag-over { background-color: rgba(225, 0, 26, 0.05); border: 2px dashed var(--accent-primary); }
+.column-header { font-size: 16px; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.task-count { background-color: var(--border-color); color: var(--text-main); padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+
+.task-list { display: flex; flex-direction: column; gap: 15px; min-height: 480px; }
+.task-card { background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 16px; border-radius: 10px; cursor: grab; transition: transform 0.1s, box-shadow 0.1s; }
+.task-card:hover { border-color: var(--accent-primary); }
+.task-card.dragging { opacity: 0.45; }
+.task-card.overdue { border: 2px solid #dc2626; background-color: rgba(220, 38, 38, 0.03); }
+.task-title { font-weight: 700; color: var(--text-main); font-size: 15px; }
+.assigned-by-badge { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; display: block; }
+
+/* إطار تفاصيل الكارت المخصص */
+.task-details-box {
+  font-size: 13px;
+  color: var(--text-main);
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--desc-box-bg);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.task-tag-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  background-color: #374151;
+  color: #ffffff;
+  border: 1px solid var(--border-color);
+}
+
+
+.task-routing { display: flex; flex-direction: column; gap: 6px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px; }
+.route-option { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; }
+.route-option input { margin-right: 8px; accent-color: var(--accent-primary); cursor: pointer; }
+
+.task-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 10px; align-items: center; flex-wrap: wrap; gap: 8px; }
+.task-meta-info { display: flex; flex-direction: column; gap: 3px; }
+
+.routine-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+@media (max-width: 900px) { .routine-container { grid-template-columns: 1fr; } }
+.routine-box { background-color: var(--card-bg); border-radius: 12px; padding: 25px; border: 1px solid var(--border-color); }
+.routine-box h3 { margin-bottom: 20px; font-size: 16px; font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+.routine-item { display: flex; align-items: center; padding: 14px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; justify-content: space-between; }
+.routine-item.done { opacity: 0.6; background-color: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2); }
+.routine-item.done .routine-text { text-decoration: line-through; color: var(--text-muted); }
+.routine-checkbox { width: 18px; height: 18px; margin-right: 12px; cursor: pointer; accent-color: var(--accent-success); }
+.routine-text { font-size: 14px; font-weight: 600; flex-grow: 1; color: var(--text-main); }
+
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+.modal-content { background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+.modal-header { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--accent-primary); }
+.form-group { margin-bottom: 18px; text-align: left; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); }
+.form-control { width: 100%; background-color: var(--input-bg); border: 1px solid var(--border-color); padding: 11px; border-radius: 8px; color: var(--text-main); font-size: 14px; outline: none; }
+.form-control:focus { border-color: var(--accent-primary); }
+input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: var(--calendar-icon-filter); cursor: pointer; }
+
+.form-row-dual { display: flex; gap: 15px; width: 100%; }
+.form-row-dual .form-group { flex: 1; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px; }
+.btn-muted { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+.btn-muted:hover { background-color: var(--border-color); color: var(--text-main); }
+
+.system-footer { text-align: center; padding: 20px 0; margin-top: 45px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 14px; font-weight: 700; }
+.dropdown-checkbox-list { max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background: var(--input-bg); }
+.dropdown-item-option { display: flex !important; align-items: center; gap: 8px; padding: 6px 8px; cursor: pointer; font-size: 13px !important; font-weight: 600 !important; color: var(--text-main); }
+.dropdown-item-option input { accent-color: var(--accent-primary); }
+</style>
+</head>
+<body>
+
+<div id="loginScreenOverlay" class="login-screen-overlay">
+  <div class="login-card-container">
+    <h2>System Login</h2>
+    <div style="font-size: 12px; color: var(--text-muted); text-align: left; background: var(--desc-box-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-bottom: 15px; line-height: 1.7;">
+      <b>Demo accounts</b> (your data stays in your browser only):<br>
+      User: <b>alex</b> (no password)<br>
+      Admin: <b>demo_admin</b> / <b>demo123</b><br>
+      Upper Admin: <b>demo_upper</b> / <b>demo123</b><br>
+      <a href="#" onclick="resetDemoData(); return false;" style="color: var(--accent-primary); font-weight: 600;">Reset demo data</a>
+    </div>
+    <div class="form-group" style="margin-bottom: 15px;">
+      <label>Username / User ID</label>
+      <input type="text" id="loginUsernameInput" class="form-control" placeholder="Enter your username..." autocomplete="off" oninput="handleLoginUsernameChange()" onkeydown="handleLoginKeydown(event)">
+    </div>
+    <div class="form-group" id="adminPasswordFormGroup" style="display: none; margin-bottom: 15px;">
+      <label>Admin Access Password</label>
+      <input type="password" id="loginPasswordInput" class="form-control" placeholder="Enter Admin Password..." autocomplete="off" onkeydown="handleLoginKeydown(event)">
+    </div>
+    <div id="loginErrorMsg" class="login-error-msg">Incorrect Username or Password. Please try again!</div>
+    <button type="button" class="btn" style="width: 100%; margin-top: 15px;" onclick="submitSystemLogin()">Login</button>
+  </div>
+</div>
+
+<div id="mainDashboardWrapper" style="display: none;">
+  <header>
+    <div>
+      <h1>Task Tracker Dashboard</h1>
+      <p>Intelligence Monitoring, Project Queues, and Operations Workflow Portal.</p>
+    </div>
+    <div class="header-profile-block">
+      <div class="filter-group">
+        <select id="themeSelector" class="filter-select" onchange="changeSystemTheme(this.value)">
+          <option value="default">Default Red</option>
+          <option value="theme-dark">Dark Mode Professional</option>
+          <option value="theme-blue">Blue Corporate</option>
+          <option value="theme-emerald">Emerald Green</option>
+          <option value="theme-purple">Midnight Purple</option>
+        </select>
+      </div>
+      <button class="btn-header-action" id="btnNotifications" onclick="switchTab('assigned-tasks-board')" title="Unread comments" style="display: none;">🔔 <span id="notifCount">0</span></button>
+      <div class="user-badge" id="globalUserBadge">
+        <span id="currentUserNameDisplay">Loading...</span>
+        <span class="role-indicator" id="currentUserRoleDisplay">User</span>
+      </div>
+      <button class="btn-header-action privileged-action-element" id="btnTopDataExport" onclick="exportAndClearSystemData()" style="display: none;">Export & Clear Data ⤓</button>
+      <button class="btn-header-action btn-logout" onclick="systemLogout()">Logout ↩</button>
+    </div>
+  </header>
+
+  <div class="nav-tabs" id="mainSystemNavTabs">
+    <button class="tab-btn active" id="tabBtnBacklog" onclick="switchTab('project-backlog')">Project Backlog Board</button>
+    <button class="tab-btn" id="tabBtnAssigned" onclick="switchTab('assigned-tasks-board')">Assigned Tasks Board</button>
+    <button class="tab-btn periodic-tab-element" id="tabBtnDaily" onclick="switchTab('daily-tasks')">Daily Tasks</button>
+    <button class="tab-btn periodic-tab-element" id="tabBtnWeekly" onclick="switchTab('weekly-tasks')">Weekly Tasks</button>
+    <button class="tab-btn periodic-tab-element" id="tabBtnMonthly" onclick="switchTab('monthly-tasks')">Monthly Tasks</button>
+  </div>
+
+  <div id="project-backlog" class="tab-content active">
+    <div class="actions-bar">
+      <button class="btn" onclick="openModal('taskModal')">+ Create New Task</button>
+      <div class="filter-group">
+        <label style="font-weight: 600; font-size: 14px;">Priority Filter:</label>
+        <select id="projectPriorityFilter" class="filter-select" onchange="renderKanban()">
+          <option value="all">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <label style="font-weight: 600; font-size: 14px; margin-left: 10px;">Deadline:</label>
+        <select id="projectDeadlineFilter" class="filter-select" onchange="renderKanban()">
+          <option value="all">All Deadlines</option>
+          <option value="overdue">Overdue</option>
+          <option value="today">Due Today</option>
+          <option value="week">Due This Week</option>
+          <option value="none">No Deadline</option>
+        </select>
+        <input type="text" id="projectSearchInput" class="filter-select" placeholder="🔍 Search tasks..." autocomplete="off" oninput="renderKanban()">
+      </div>
+      <button class="btn btn-danger-outline privileged-action-element" onclick="clearDoneTasks()">Clear Completed Tasks</button>
+    </div>
+    <div class="kanban-board">
+      <div class="kanban-column" data-status="To Do" ondragover="handleDragOver(event, 'projects')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'projects', 'To Do')">
+        <div class="column-header"><span>To Do</span><span class="task-count" id="todo-count">0</span></div>
+        <div class="task-list" id="todo-list"></div>
+      </div>
+      <div class="kanban-column" data-status="In Progress" ondragover="handleDragOver(event, 'projects')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'projects', 'In Progress')">
+        <div class="column-header"><span>In Progress</span><span class="task-count" id="inprogress-count">0</span></div>
+        <div class="task-list" id="inprogress-list"></div>
+      </div>
+      <div class="kanban-column" data-status="Done" ondragover="handleDragOver(event, 'projects')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'projects', 'Done')">
+        <div class="column-header"><span>Done</span><span class="task-count" id="done-count">0</span></div>
+        <div class="task-list" id="done-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="assigned-tasks-board" class="tab-content">
+    <div class="actions-bar">
+      <button class="btn privileged-action-element" id="btnAssignNewTask" onclick="openModal('assignedTaskModal')">+ Assign New Task</button>
+      <div class="filter-group" id="filterGroupArea">
+        <label style="font-weight: 600; font-size: 14px;" id="filterMemberLabel">Filter Member:</label>
+        <select id="assigneeFilter" class="filter-select" onchange="renderAssignedKanban()">
+          <option value="all">All Team Members</option>
+        </select>
+        <label style="font-weight: 600; font-size: 14px; margin-left: 10px;">Priority:</label>
+        <select id="priorityFilter" class="filter-select" onchange="renderAssignedKanban()">
+          <option value="all">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <label style="font-weight: 600; font-size: 14px; margin-left: 10px;">Deadline:</label>
+        <select id="assignedDeadlineFilter" class="filter-select" onchange="renderAssignedKanban()">
+          <option value="all">All Deadlines</option>
+          <option value="overdue">Overdue</option>
+          <option value="today">Due Today</option>
+          <option value="week">Due This Week</option>
+          <option value="none">No Deadline</option>
+        </select>
+        <input type="text" id="assignedSearchInput" class="filter-select" placeholder="🔍 Search tasks..." autocomplete="off" oninput="renderAssignedKanban()">
+      </div>
+      <button class="btn btn-danger-outline privileged-action-element" id="btnClearCompletedAssigned" onclick="clearAssignedDoneTasks()">Clear Completed Assigned</button>
+    </div>
+    <div class="kanban-board">
+      <div class="kanban-column" data-status="To Do" ondragover="handleDragOver(event, 'assigned')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'assigned', 'To Do')">
+        <div class="column-header"><span>Assigned To Do</span><span class="task-count" id="assigned-todo-count">0</span></div>
+        <div class="task-list" id="assigned-todo-list"></div>
+      </div>
+      <div class="kanban-column" data-status="In Progress" ondragover="handleDragOver(event, 'assigned')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'assigned', 'In Progress')">
+        <div class="column-header"><span>Assigned In Progress</span><span class="task-count" id="assigned-inprogress-count">0</span></div>
+        <div class="task-list" id="assigned-inprogress-list"></div>
+      </div>
+      <div class="kanban-column" data-status="Done" ondragover="handleDragOver(event, 'assigned')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'assigned', 'Done')">
+        <div class="column-header"><span>Assigned Done</span><span class="task-count" id="assigned-done-count">0</span></div>
+        <div class="task-list" id="assigned-done-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="daily-tasks" class="tab-content">
+    <div class="actions-bar" style="margin-bottom: 15px;">
+      <div class="filter-group">
+        <label style="font-weight: 600; font-size: 14px;">Priority Filter:</label>
+        <select id="dailyPriorityFilter" class="filter-select" onchange="renderRoutines()">
+          <option value="all">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="routine-container"><div class="routine-box"><h3>Pending Daily Emails</h3><div id="daily-pending-container"></div></div><div class="routine-box"><h3>Completed Today</h3><div id="daily-done-container"></div></div></div>
+  </div>
+
+  <div id="weekly-tasks" class="tab-content">
+    <div class="actions-bar" style="margin-bottom: 15px;">
+      <div class="filter-group">
+        <label style="font-weight: 600; font-size: 14px;">Priority Filter:</label>
+        <select id="weeklyPriorityFilter" class="filter-select" onchange="renderRoutines()">
+          <option value="all">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="routine-container"><div class="routine-box"><h3>Pending Weekly Items</h3><div id="weekly-pending-container"></div></div><div class="routine-box"><h3>Completed This Week</h3><div id="weekly-done-container"></div></div></div>
+  </div>
+
+  <div id="monthly-tasks" class="tab-content">
+    <div class="actions-bar" style="margin-bottom: 15px;">
+      <div class="filter-group">
+        <label style="font-weight: 600; font-size: 14px;">Priority Filter:</label>
+        <select id="monthlyPriorityFilter" class="filter-select" onchange="renderRoutines()">
+          <option value="all">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="routine-container"><div class="routine-box"><h3>Pending Monthly Requests</h3><div id="monthly-pending-container"></div></div><div class="routine-box"><h3>Completed This Month</h3><div id="monthly-done-container"></div></div></div>
+  </div>
+
+  <div class="system-footer">Created By: Karim Ali</div>
+</div>
+
+<div class="modal" id="taskModal">
+  <div class="modal-content">
+    <div class="modal-header">Create New Project Task</div>
+    <form id="taskForm" onsubmit="saveTask(event)">
+      <div class="form-group"><label>Task Summary / Title</label><input type="text" id="taskTitle" class="form-control" required autocomplete="off"></div>
+      <div class="form-group"><label>Detailed Scope</label><textarea id="taskScope" class="form-control" rows="3"></textarea></div>
+      <div class="form-group"><label>Priority Level</label><select id="taskPriority" class="form-control"><option value="Medium">Medium</option><option value="High">High</option><option value="Low">Low</option></select></div>
+      <div class="form-group"><label>Initial Status</label><select id="taskStatus" class="form-control"><option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option></select></div>
+      <div class="form-group"><label>Target Timeline Deadline</label><input type="datetime-local" id="taskDeadline" class="form-control" required></div>
+      <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeModal('taskModal')">Cancel</button><button type="submit" class="btn">Save Task</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="assignedTaskModal">
+  <div class="modal-content">
+    <div class="modal-header" id="assignedModalTitle">Assign Task to Team Member</div>
+    <form id="assignedTaskForm" onsubmit="saveAssignedTask(event)">
+      <input type="hidden" id="assignedTaskEditId" value="">
+      <div class="form-group"><label>Task Summary / Title</label><input type="text" id="assignedTaskTitle" class="form-control" required autocomplete="off"></div>
+      <div class="form-group"><label>Detailed Scope</label><textarea id="assignedTaskScope" class="form-control" rows="3"></textarea></div>
+      <div class="form-group"><label>Priority Level</label><select id="assignedTaskPriority" class="form-control"><option value="Medium">Medium</option><option value="High">High</option><option value="Low">Low</option></select></div>
+      <div class="form-group privileged-action-element">
+        <label>Labels & Tags</label>
+          <select id="assignedTaskLabels" class="form-control">
+            <option value="">Select Label...</option><option value="Bug">Bug</option><option value="Request">Request</option><option value="Incident">Incident</option><option value="Reporting">Reporting</option><option value="Routine Task">Routine Task</option><option value="Urgent">Urgent</option>
+          </select>
+      </div>
+      <div class="form-group"><label>Assignee Person Name(s)</label><div class="dropdown-checkbox-list" id="assigneeDropdownList"></div></div>
+      <div class="form-group"><label>Send Email to Assignee</label><input type="text" id="assignedTaskEmailUser" class="form-control" autocomplete="off" placeholder="Auto-filled on selection..."></div>
+      <div class="form-group"><label>Initial Status</label><select id="assignedTaskStatus" class="form-control"><option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option></select></div>
+      <div class="form-group"><label>Target Deadline</label><input type="datetime-local" id="assignedTaskDeadline" class="form-control" required></div>
+      <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeModal('assignedTaskModal')">Cancel</button><button type="submit" class="btn" id="assignedSubmitBtn">Assign Task</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="routineModal" style="display: none; align-items: center; justify-content: center;">
+  <div class="modal-content">
+    <div class="modal-header" id="routineModalTitle">Add Custom Task</div>
+    <input type="hidden" id="routineModalType">
+    <div class="form-group"><label>Task Name / Description</label><input type="text" id="routineModalName" class="form-control" required autocomplete="off"></div>
+    <div class="form-group"><label>Priority Level</label><select id="routineModalPriority" class="form-control"><option value="High" selected>High</option><option value="Medium">Medium</option><option value="Low">Low</option></select></div>
+    <div class="form-group" id="routineModalDayGroup" style="display: none;"><label>Select Day</label><select id="routineModalDay" class="form-control"><option value="Monday">Monday</option><option value="Tuesday">Tuesday</option><option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option><option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option></select></div>
+    <div class="form-group" id="routineModalDateGroup" style="display: none;"><label>Day of Month (every month)</label><select id="routineModalDayOfMonth" class="form-control"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
+    <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeRoutineModal()">Cancel</button><button type="button" class="btn" onclick="saveCustomRoutineModal()">Save Task</button></div>
+  </div>
+</div>
+
+<div class="modal" id="taskCommentsModal">
+  <div class="modal-content">
+    <div class="modal-header" id="commentsModalTitle">Task Comments & Clarifications</div>
+    <input type="hidden" id="activeCommentTaskId">
+    <div id="commentsHistoryList" style="max-height: 220px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 15px;"></div>
+    <div class="form-group"><label>Add Comment</label><textarea id="newCommentText" class="form-control" rows="3" placeholder="Write comment..."></textarea></div>
+    <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeModal('taskCommentsModal')">Close</button><button type="button" class="btn" onclick="saveTaskComment()">Post Comment</button></div>
+  </div>
+</div>
+
+<script>
+function syncAndUpgradeSystemFile() {
+  // قبل الحفظ: اقرأ آخر نسخة من السيرفر وادمج تعديلاتك معاها (عشان ماتمسحش شغل حد تاني)
+  const serverDB = loadCentralDatabaseFromServer();
+  if (serverDB) {
+    projects = mergeCollection(projects, serverDB.projects, lastKnownIds.projects);
+    assignedTasks = mergeCollection(assignedTasks, serverDB.assignedTasks, lastKnownIds.assignedTasks);
+    dailyMails = mergeCollection(dailyMails, serverDB.dailyMails, lastKnownIds.dailyMails);
+    weeklyMails = mergeCollection(weeklyMails, serverDB.weeklyMails, lastKnownIds.weeklyMails);
+    monthlyMails = mergeCollection(monthlyMails, serverDB.monthlyMails, lastKnownIds.monthlyMails);
+  }
+  // ملحوظة: بيانات الفريق والباسوردات مابتتبعتش للسيرفر خالص (موجودة في الكود فقط)
+  const systemDataPayload = { projects: projects, assignedTasks: assignedTasks, dailyMails: dailyMails, weeklyMails: weeklyMails, monthlyMails: monthlyMails };
+  let saved = false;
+  if (!DEMO_MODE) {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", SERVER_BASE_URL, false);
+      xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+      xhr.send(JSON.stringify(systemDataPayload));
+      saved = (xhr.status === 200);
+    } catch (err) {}
+  }
+  if (saved) { rememberServerIds(); }
+  syncStorage();
+  notifyServerStatus(saved);
+  renderKanban();
+  renderAssignedKanban();
+  renderRoutines();
+}
+
+function loadCentralDatabaseFromServer() {
+  if (DEMO_MODE) return null;
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", SERVER_BASE_URL + "?t=" + Date.now(), false);
+    xhr.send(null);
+    if (xhr.status === 200) { return JSON.parse(xhr.responseText); }
+  } catch (err) {}
+  return null;
+}
+
+let lastKnownIds = { projects: [], assignedTasks: [], dailyMails: [], weeklyMails: [], monthlyMails: [] };
+let serverWarningShown = false;
+let dragInProgress = false;
+let dragStartedAt = 0;
+let draggedItem = null;
+let autoLoginSuppressed = false;
+let loginPrefillUser = '';
+let loginPrefillError = '';
+const LOCAL_CACHE_KEY = 'mis_cache_v15';
+
+// بيانات الفريق مصدرها الكود فقط (DEFAULT_TEAM_MEMBERS) - مش من السيرفر ولا من ملف الـ JSON
+const teamMembers = DEFAULT_TEAM_MEMBERS;
+
+// لو السيرفر مش متاح عند الفتح: اعرض آخر نسخة محفوظة محلياً (للقراءة) بدل شاشة فاضية
+let centralDB = loadCentralDatabaseFromServer() || loadLocalCache() || {};
+if (DEMO_MODE && !centralDB.assignedTasks && !centralDB.projects) { centralDB = buildDemoData(); }
+let projects = centralDB.projects || [];
+let assignedTasks = centralDB.assignedTasks || [];
+let dailyMails = centralDB.dailyMails || [];
+let weeklyMails = centralDB.weeklyMails || [];
+let monthlyMails = centralDB.monthlyMails || [];
+rememberServerIds();
+let currentUserSession = localStorage.getItem('mis_logged_user_id');
+let currentUserInfo = null;
+
+// تحويل تنسيق التاريخ للصيغة المطلوبة: DD/MM/YYYY hh:mm AM/PM
+// ===================== Roles / team scope helpers =====================
+function normalizeId(v) { return (v == null ? '' : String(v)).trim().toLowerCase(); }
+function isUpperAdminInfo(info) { return !!info && info.role === 'UpperAdmin'; }
+function isPrivilegedInfo(info) { return !!info && (info.role === 'Admin' || info.role === 'UpperAdmin'); }
+// null = كل اليوزرز | array = اليوزرز المسموح للأدمن يشوفهم
+function getManagedUserIds(info) {
+  if (!info || info.role === 'UpperAdmin') return null;
+  const list = Array.isArray(info.managedUsers) ? info.managedUsers : [];
+  if (list.some(x => normalizeId(x) === 'all')) return null;
+  return list.map(normalizeId);
+}
+function getAssignableMembers() {
+  if (!isPrivilegedInfo(currentUserInfo)) return teamMembers;
+  const scope = getManagedUserIds(currentUserInfo);
+  if (!scope) return teamMembers;
+  return teamMembers.filter(m => scope.includes(normalizeId(m.userId)));
+}
+function canSeeProjectTask(task) {
+  if (!currentUserInfo) return false;
+  if (isUpperAdminInfo(currentUserInfo)) return true;
+  return normalizeId(task.createdBy) === normalizeId(currentUserSession);
+}
+function canSeeAssignedTask(task) {
+  if (!currentUserInfo) return false;
+  if (isUpperAdminInfo(currentUserInfo)) return true;
+  if (currentUserInfo.role === 'Admin') {
+    if (normalizeId(task.createdBy) === normalizeId(currentUserSession)) return true;
+    const scope = getManagedUserIds(currentUserInfo);
+    return !scope || scope.includes(normalizeId(task.userId));
+  }
+  return normalizeId(task.userId) === normalizeId(currentUserInfo.userId);
+}
+function validateTeamConfig() {
+  const ids = new Set();
+  teamMembers.forEach(m => {
+    const id = normalizeId(m.userId);
+    if (ids.has(id)) console.warn('[Config] Duplicate userId:', m.userId);
+    ids.add(id);
+    if (['User', 'Admin', 'UpperAdmin'].indexOf(m.role) === -1) console.warn('[Config] Unknown role for', m.userId, ':', m.role);
+    if ((m.role === 'Admin' || m.role === 'UpperAdmin') && !m.password) console.warn('[Config] Missing password for', m.userId);
+  });
+  teamMembers.forEach(m => {
+    if (m.role !== 'Admin') return;
+    if (!Array.isArray(m.managedUsers)) { console.warn('[Config] Admin', m.userId, 'has no managedUsers list (he will see no users).'); return; }
+    m.managedUsers.forEach(u => { if (normalizeId(u) !== 'all' && !ids.has(normalizeId(u))) console.warn('[Config] managedUsers of', m.userId, 'contains an unknown user:', u); });
+  });
+}
+function getWindowsUserFromURL() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    return normalizeId(p.get('user') || p.get('u'));
+  } catch (e) { return ''; }
+}
+
+// ===================== Safe multi-user saving (merge instead of overwrite) =====================
+function rememberServerIds() {
+  lastKnownIds = {
+    projects: projects.map(t => t.id), assignedTasks: assignedTasks.map(t => t.id),
+    dailyMails: dailyMails.map(t => t.id), weeklyMails: weeklyMails.map(t => t.id), monthlyMails: monthlyMails.map(t => t.id)
+  };
+}
+function commentKey(c) { return c.id || (c.userId + '|' + c.date + '|' + c.text); }
+function mergeComments(a, b) {
+  const map = new Map();
+  (a || []).concat(b || []).forEach(c => { if (c) { const k = commentKey(c); if (!map.has(k)) map.set(k, c); } });
+  return Array.from(map.values()).sort((x, y) => (x.ts || 0) - (y.ts || 0));
+}
+function pickNewerItem(localItem, serverItem) {
+  const winner = ((serverItem.updatedAt || 0) > (localItem.updatedAt || 0)) ? serverItem : localItem;
+  const other = (winner === localItem) ? serverItem : localItem;
+  if (Array.isArray(winner.comments) || Array.isArray(other.comments)) {
+    return Object.assign({}, winner, { comments: mergeComments(winner.comments, other.comments) });
+  }
+  return winner;
+}
+function mergeCollection(localArr, serverArr, knownIds) {
+  const known = new Set(knownIds || []);
+  const serverMap = new Map(); (serverArr || []).forEach(i => { if (i && i.id) serverMap.set(i.id, i); });
+  const localMap = new Map(); (localArr || []).forEach(i => { if (i && i.id) localMap.set(i.id, i); });
+  const result = [];
+  localMap.forEach((localItem, id) => {
+    const serverItem = serverMap.get(id);
+    if (!serverItem) { if (known.has(id)) return; result.push(localItem); return; }   // اتحذف من حد تاني / جديد عندك
+    result.push(pickNewerItem(localItem, serverItem));
+  });
+  serverMap.forEach((serverItem, id) => { if (!localMap.has(id) && !known.has(id)) result.push(serverItem); });   // جديد من حد تاني
+  return result;
+}
+function notifyServerStatus(ok) {
+  if (DEMO_MODE) return;
+  if (ok) { serverWarningShown = false; return; }
+  if (!serverWarningShown) {
+    serverWarningShown = true;
+    alert("Warning: cannot reach the local server (" + SERVER_BASE_URL + "). Your last change was NOT saved to the shared database.\nPlease close this page, run the launcher (.bat) again, then repeat the change.");
+  }
+}
+
+// ===================== Local cache (read-only fallback when the server is down) =====================
+function syncStorage() {
+  try {
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), projects: projects, assignedTasks: assignedTasks, dailyMails: dailyMails, weeklyMails: weeklyMails, monthlyMails: monthlyMails }));
+    ['team', 'projects', 'assigned', 'daily', 'weekly', 'monthly'].forEach(k => localStorage.removeItem('mis_' + k + '_v14'));   // تنظيف المفاتيح القديمة
+  } catch (e) {}
+}
+function loadLocalCache() {
+  try { const raw = localStorage.getItem(LOCAL_CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+
+// ===================== Filters (search / deadline) =====================
+function taskMatchesSearch(task, q) {
+  if (!q) return true;
+  const creator = teamMembers.find(m => normalizeId(m.userId) === normalizeId(task.createdBy));
+  const hay = [task.title, task.scope, task.labels, task.assignee, task.userId, creator ? creator.name : task.createdBy].join(' ').toLowerCase();
+  return hay.indexOf(q) !== -1;
+}
+function taskMatchesDeadlineFilter(task, mode) {
+  if (!mode || mode === 'all') return true;
+  if (mode === 'none') return !task.deadline;
+  if (!task.deadline) return false;
+  const d = new Date(task.deadline);
+  if (isNaN(d.getTime())) return false;
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startTomorrow = new Date(startToday.getTime() + 86400000);
+  const startNextWeek = new Date(startToday.getTime() + 7 * 86400000);
+  if (mode === 'overdue') return task.status !== 'Done' && d < now;
+  if (mode === 'today') return d >= startToday && d < startTomorrow;
+  if (mode === 'week') return d >= startToday && d < startNextWeek;
+  return true;
+}
+function readFilterValue(id, fallback) { const el = document.getElementById(id); return el ? el.value : fallback; }
+
+// ===================== Routines: period-based completion (no reset job needed) =====================
+const WEEKDAY_INDEX = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5, Sunday: 6 };
+function startOfWeekMonday(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x.getTime();
+}
+// المهمة تعتبر "تمت" بس لو اتعلّمت في نفس اليوم/الأسبوع/الشهر الحالي، وبعدها بترجع Pending تلقائياً
+function isRoutineDoneNow(item, type) {
+  if (!item.completed || !item.completedAt) return false;
+  const c = new Date(item.completedAt), n = new Date();
+  if (type === 'daily') return c.toDateString() === n.toDateString();
+  if (type === 'weekly') return startOfWeekMonday(c) === startOfWeekMonday(n);
+  return c.getFullYear() === n.getFullYear() && c.getMonth() === n.getMonth();
+}
+function getRoutineDayOfMonth(item) {
+  if (item.dayOfMonth) return parseInt(item.dayOfMonth, 10);
+  if (item.date && /^\d{4}-\d{2}-\d{2}$/.test(item.date)) return parseInt(item.date.slice(8, 10), 10);   // بيانات قديمة
+  return null;
+}
+function isRoutineOverdue(item, type) {
+  const now = new Date();
+  if (type === 'weekly') { const idx = WEEKDAY_INDEX[item.day]; return idx !== undefined && ((now.getDay() + 6) % 7) > idx; }
+  if (type === 'monthly') {
+    const dom = getRoutineDayOfMonth(item); if (!dom) return false;
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return now.getDate() > Math.min(dom, lastDay);
+  }
+  return false;
+}
+function formatDateTimeOrBlank(raw) {
+  if (!raw) return '';
+  const out = formatCustomDateTime(raw);
+  return out === 'No Deadline' ? '' : out;
+}
+
+// ===================== Unread comments (🔔) - محفوظ لكل يوزر في متصفحه =====================
+function seenCommentsKey() { return 'mis_seen_comments_' + normalizeId(currentUserSession); }
+function getSeenMap() { try { return JSON.parse(localStorage.getItem(seenCommentsKey()) || '{}'); } catch (e) { return {}; } }
+function getUnreadCommentCount(task, seenMap) {
+  const lastSeen = seenMap[task.id] || 0;
+  return (task.comments || []).filter(c => normalizeId(c.userId) !== normalizeId(currentUserSession) && (c.ts || 0) > lastSeen).length;
+}
+function markCommentsSeen(task) {
+  const seen = getSeenMap();
+  seen[task.id] = Math.max(0, ...(task.comments || []).map(c => c.ts || 0));
+  try { localStorage.setItem(seenCommentsKey(), JSON.stringify(seen)); } catch (e) {}
+}
+function updateNotificationBell(total) {
+  const bell = document.getElementById('btnNotifications');
+  if (!bell) return;
+  document.getElementById('notifCount').innerText = total;
+  bell.style.display = total > 0 ? '' : 'none';
+  bell.style.borderColor = 'var(--accent-primary)';
+  bell.style.color = 'var(--accent-primary)';
+}
+
+// ===================== Demo data (بيظهر أول مرة بس) =====================
+function buildDemoData() {
+  const now = Date.now(), H = 3600000, D = 24 * H;
+  const local = (ms) => new Date(ms - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const cm = (id, userId, text, ago) => ({ id: 'c-demo-' + id, userId: userId, text: text, date: new Date(now - ago).toLocaleString(), ts: now - ago });
+  const mk = (n, title, scope, userId, assignee, createdBy, status, priority, labels, deadlineMs, comments) => ({ id: 'at-demo-' + n, title: title, scope: scope, assignee: assignee, userId: userId, status: status, deadline: local(deadlineMs), priority: priority, labels: labels, comments: comments || [], createdBy: createdBy, creationDate: new Date(now - 2 * D).toISOString(), reminderSent: false, updatedAt: now - D });
+  return {
+    assignedTasks: [
+      mk(1, 'Prepare weekly KPI report', 'Collect the numbers from all queues and send the summary.', 'alex', 'Alex Morgan', 'demo_admin', 'In Progress', 'High', 'Reporting', now + 1 * D, [cm(1, 'alex', 'Do we need the abandoned-calls chart too?', 5 * H), cm(2, 'demo_admin', 'Yes please, include last 4 weeks.', 4 * H)]),
+      mk(2, 'Fix dashboard sync issue', 'Users see stale data after 10 minutes.', 'sara', 'Sara Khaled', 'demo_admin', 'To Do', 'High', 'Bug', now + 3 * D),
+      mk(3, 'Update shift schedule', 'Publish next month schedule.', 'omar', 'Omar Nabil', 'demo_admin', 'Done', 'Low', 'Routine Task', now - 1 * D),
+      mk(4, 'Customer escalation follow-up', 'Call back the customer and confirm resolution.', 'alex', 'Alex Morgan', 'demo_admin', 'To Do', 'Medium', 'Incident', now - 6 * H),
+      mk(5, 'QBR data request', 'Prepare the quarterly numbers for the review.', 'lina', 'Lina Hassan', 'demo_admin2', 'In Progress', 'Medium', 'Request', now + 5 * D),
+      mk(6, 'Audit sample of 20 calls', 'Score and share the findings.', 'youssef', 'Youssef Adel', 'demo_admin2', 'To Do', 'Low', 'Reporting', now + 7 * D)
+    ],
+    projects: [
+      { id: 't-demo-1', title: 'Automate daily mail reports', scope: 'Idea backlog for the team.', priority: 'Medium', status: 'To Do', deadline: local(now + 14 * D), createdBy: 'demo_admin', creationDate: new Date(now - 3 * D).toISOString(), updatedAt: now - D },
+      { id: 't-demo-2', title: 'Review team training plan', scope: '', priority: 'Low', status: 'In Progress', deadline: local(now + 10 * D), createdBy: 'demo_admin', creationDate: new Date(now - 4 * D).toISOString(), updatedAt: now - D }
+    ]
+  };
+}
+function resetDemoData() {
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('mis_') === 0) keys.push(k); }
+    keys.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  location.reload();
+}
+
+function formatCustomDateTime(rawDateTimeStr) {
+  if (!rawDateTimeStr) return 'No Deadline';
+  const dt = new Date(rawDateTimeStr);
+  if (isNaN(dt.getTime())) return rawDateTimeStr;
+  
+  const day = String(dt.getDate()).padStart(2, '0');
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const year = dt.getFullYear();
+  
+  let hours = dt.getHours();
+  const minutes = String(dt.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; 
+  const strHours = String(hours).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${strHours}:${minutes} ${ampm}`;
+}
+
+function changeSystemTheme(themeName) {
+  document.body.className = themeName === 'default' ? '' : themeName;
+  if (currentUserSession) localStorage.setItem('mis_theme_' + currentUserSession, themeName);
+}
+
+function initializeUserRoutines(userId) {
+  let changed = false;
+  let hasDaily = dailyMails.some(item => item.userId === userId);
+  if (!hasDaily && typeof DEFAULT_DAILY_TASKS !== 'undefined') {
+    DEFAULT_DAILY_TASKS.forEach((task, index) => { dailyMails.push({ id: 'd-' + userId + '-' + index + '-' + Date.now(), name: task, priority: 'High', completed: false, userId: userId, isCustom: false }); changed = true; });
+  }
+  let hasWeekly = weeklyMails.some(item => item.userId === userId);
+  if (!hasWeekly && typeof DEFAULT_WEEKLY_TASKS !== 'undefined') {
+    DEFAULT_WEEKLY_TASKS.forEach((task, index) => { weeklyMails.push({ id: 'w-' + userId + '-' + index + '-' + Date.now(), name: task.name, day: task.day, priority: 'High', completed: false, userId: userId, isCustom: false }); changed = true; });
+  }
+  let hasMonthly = monthlyMails.some(item => item.userId === userId);
+  if (!hasMonthly && typeof DEFAULT_MONTHLY_TASKS !== 'undefined') {
+    DEFAULT_MONTHLY_TASKS.forEach((task, index) => { monthlyMails.push({ id: 'm-' + userId + '-' + index + '-' + Date.now(), name: task.name, dayOfMonth: task.dayOfMonth, priority: 'High', completed: false, userId: userId, isCustom: false }); changed = true; });
+  }
+  // لازم الروتينات الافتراضية تتحفظ على السيرفر فوراً وإلا أول تحديث تلقائي هيمسحها
+  if (changed) { syncAndUpgradeSystemFile(); }
+}
+
+function handleLoginUsernameChange() {
+  const userInput = document.getElementById('loginUsernameInput').value.trim().toLowerCase();
+  const passwordGroup = document.getElementById('adminPasswordFormGroup');
+  const passwordInput = document.getElementById('loginPasswordInput');
+  const matched = teamMembers.find(m => m.userId.toLowerCase() === userInput);
+  
+  if (matched && (matched.role === "Admin" || matched.role === "UpperAdmin")) {
+    passwordGroup.style.display = "block";
+    setTimeout(() => { passwordInput.focus(); }, 100);
+  } else {
+    passwordGroup.style.display = "none";
+    passwordInput.value = "";
+  }
+}
+
+function handleLoginKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitSystemLogin();
+  }
+}
+
+function checkAuthenticationState() {
+  const loginOverlay = document.getElementById('loginScreenOverlay');
+  const dashboardWrapper = document.getElementById('mainDashboardWrapper');
+  loginPrefillUser = '';
+  loginPrefillError = '';
+
+  // الدخول التلقائي بيوزر Citrix اللي جاي من الـ bat في رابط الصفحة (?user=...)
+  if (AUTO_LOGIN_FROM_WINDOWS_USER && !autoLoginSuppressed) {
+    const winUser = getWindowsUserFromURL();
+    if (winUser) {
+      const autoMember = teamMembers.find(m => normalizeId(m.userId) === winUser);
+      if (!autoMember) {
+        currentUserSession = null;
+        loginPrefillError = 'Windows user "' + winUser + '" is not registered in the system. Please contact your administrator.';
+      } else if (isPrivilegedInfo(autoMember) && !ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD) {
+        currentUserSession = null;
+        loginPrefillUser = autoMember.userId;
+      } else {
+        currentUserSession = normalizeId(autoMember.userId);
+        localStorage.setItem('mis_logged_user_id', currentUserSession);
+      }
+    }
+  }
+
+  // لو الأدمن لازم يدخل باسورد: ماترجّعش جلسة أدمن محفوظة في المتصفح
+  if (!ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD && isPrivilegedInfo(teamMembers.find(m => normalizeId(m.userId) === normalizeId(currentUserSession)))) currentUserSession = null;
+  if (currentUserSession && currentUserSession.trim() !== "") {
+    currentUserInfo = teamMembers.find(m => normalizeId(m.userId) === normalizeId(currentUserSession));
+    if (currentUserInfo) {
+      loginOverlay.style.display = 'none';
+      dashboardWrapper.style.display = 'block';
+      initializeUserRoutines(currentUserSession);
+      initializeDashboardProfile();
+      if (currentUserInfo.role === 'User') { switchTab('assigned-tasks-board'); }
+      return true;
+    }
+  }
+  loginOverlay.style.display = 'flex';
+  dashboardWrapper.style.display = 'none';
+  if (loginPrefillUser) {
+    document.getElementById('loginUsernameInput').value = loginPrefillUser;
+    handleLoginUsernameChange();
+  }
+  if (loginPrefillError) {
+    const errBox = document.getElementById('loginErrorMsg');
+    errBox.innerText = loginPrefillError;
+    errBox.style.display = 'block';
+  }
+  return false;
+}
+
+function submitSystemLogin() {
+  const userInput = document.getElementById('loginUsernameInput').value.trim().toLowerCase();
+  const passwordInput = document.getElementById('loginPasswordInput').value.trim();
+  const errorMsg = document.getElementById('loginErrorMsg');
+  if (userInput === "") { errorMsg.innerText = "Please enter your username."; errorMsg.style.display = "block"; return; }
+  const matchedMember = teamMembers.find(m => m.userId.trim().toLowerCase() === userInput);
+  if (matchedMember) {
+    if ((matchedMember.role === "Admin" || matchedMember.role === "UpperAdmin") && passwordInput !== matchedMember.password) {
+      errorMsg.innerText = "Access Denied: Incorrect Password.";
+      errorMsg.style.display = "block";
+      return;
+    }
+    errorMsg.style.display = "none";
+    localStorage.setItem('mis_logged_user_id', userInput);
+    currentUserSession = userInput;
+    currentUserInfo = matchedMember;
+    document.getElementById('loginScreenOverlay').style.display = 'none';
+    document.getElementById('mainDashboardWrapper').style.display = 'block';
+    initializeUserRoutines(currentUserSession);
+    buildDynamicTeamUI();
+    applyRoleSecurityLocks();
+    renderKanban();
+    renderAssignedKanban();
+    renderRoutines();
+    initializeDashboardProfile();
+    if (matchedMember.role === 'User') { switchTab('assigned-tasks-board'); }
+  } else {
+    errorMsg.innerText = "Access Denied: Incorrect Username.";
+    errorMsg.style.display = "block";
+  }
+}
+
+function initializeDashboardProfile() {
+  if (!currentUserInfo) return;
+  document.getElementById('currentUserNameDisplay').innerText = currentUserInfo.name;
+  const badgeRole = document.getElementById('currentUserRoleDisplay');
+  badgeRole.innerText = currentUserInfo.role;
+  badgeRole.className = `role-indicator ${currentUserInfo.role === 'UpperAdmin' ? 'role-upperadmin' : (currentUserInfo.role === 'Admin' ? 'role-admin' : 'role-user')}`;
+  
+  const userTheme = localStorage.getItem('mis_theme_' + currentUserSession) || 'default';
+  document.getElementById('themeSelector').value = userTheme;
+  changeSystemTheme(userTheme);
+}
+
+function systemLogout() {
+  if (confirm("Are you sure you want to log out?")) {
+    localStorage.removeItem('mis_logged_user_id');
+    autoLoginSuppressed = true;
+    currentUserSession = null;
+    currentUserInfo = null;
+    document.getElementById('loginUsernameInput').value = "";
+    document.getElementById('loginPasswordInput').value = "";
+    document.getElementById('adminPasswordFormGroup').style.display = "none";
+    document.getElementById('loginErrorMsg').style.display = "none";
+    checkAuthenticationState();
+  }
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => { el.style.display = 'none'; el.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('active'); });
+  const targetTab = document.getElementById(tabId);
+  if (targetTab) { targetTab.style.display = 'block'; targetTab.classList.add('active'); }
+  const correspondingBtn = document.querySelector(`button[onclick*="${tabId}"]`);
+  if (correspondingBtn) correspondingBtn.classList.add('active');
+}
+
+function applyRoleSecurityLocks() {
+  if (!currentUserInfo) return;
+  const privilegedElements = document.querySelectorAll('.privileged-action-element');
+  const filterSelect = document.getElementById('assigneeFilter');
+  const filterMemberLabel = document.getElementById('filterMemberLabel');
+  const periodicTabs = document.querySelectorAll('.periodic-tab-element');
+  
+  if (currentUserInfo.role === 'User') {
+    privilegedElements.forEach(el => el.style.display = 'none');
+    periodicTabs.forEach(tab => { tab.style.display = 'inline-block'; });
+    if (filterSelect) {
+      filterSelect.innerHTML = `<option value="${escapeHTML(currentUserInfo.userId)}">My Tasks (${escapeHTML(currentUserInfo.name)})</option>`;
+      filterSelect.value = currentUserInfo.userId;
+    }
+    if (filterMemberLabel) filterMemberLabel.innerText = "Review Tasks:";
+  } else {
+    privilegedElements.forEach(el => el.style.display = '');   // رجّع العنصر لتنسيقه الأصلي (مش inline-block)
+    periodicTabs.forEach(tab => { tab.style.display = 'inline-block'; });
+    if (filterMemberLabel) filterMemberLabel.innerText = "Filter Member:";
+    buildDynamicTeamUI();
+  }
+}
+
+function startCentralAutoFetchLoop() {
+  setInterval(function() {
+    if (dragInProgress && (Date.now() - dragStartedAt) < 30000) return;   // ماتقطعش السحب بتحديث تلقائي
+    let freshDB = loadCentralDatabaseFromServer();
+    if (!freshDB) return;
+    projects = freshDB.projects || [];
+    assignedTasks = freshDB.assignedTasks || [];
+    dailyMails = freshDB.dailyMails || dailyMails;
+    weeklyMails = freshDB.weeklyMails || weeklyMails;
+    monthlyMails = freshDB.monthlyMails || monthlyMails;
+    rememberServerIds();
+    syncStorage();
+    renderKanban();
+    renderAssignedKanban();
+    renderRoutines();
+    refreshOpenCommentsModal();
+    checkUpcomingDeadlinesAndAlert();
+  }, 15000);
+}
+
+function checkUpcomingDeadlinesAndAlert() {
+  if (!isPrivilegedInfo(currentUserInfo)) return;
+  const now = new Date();
+  // التنبيه للأدمن اللي أسند التاسك بس، ومرة واحدة لكل تاسك
+  const dueTask = assignedTasks.find(task => {
+    if (task.status === 'Done' || !task.deadline || task.reminderSent) return false;
+    if (normalizeId(task.createdBy) !== normalizeId(currentUserSession)) return false;
+    const diffHours = (new Date(task.deadline) - now) / (1000 * 60 * 60);
+    return diffHours > 0 && diffHours <= REMINDER_HOURS_BEFORE_DEADLINE;
+  });
+  if (!dueTask) return;
+  dueTask.reminderSent = true;           // اتسجل على السيرفر قبل ما نسأل، عشان التحديث التلقائي ما يكررش التنبيه
+  dueTask.updatedAt = Date.now();
+  syncAndUpgradeSystemFile();
+  if (confirm(`Task "${dueTask.title}" assigned to ${dueTask.assignee} is due in less than ${REMINDER_HOURS_BEFORE_DEADLINE} hours! Send reminder email now?`)) {
+    const mailtoUrl = generateMailtoLink(dueTask.userId, "[Reminder] " + dueTask.title, dueTask.scope, dueTask.deadline, dueTask);
+    if (mailtoUrl) window.location.href = mailtoUrl;
+  }
+}
+
+function handleDragStart(e, taskId, boardType) {
+  draggedItem = { id: taskId, board: boardType };
+  dragInProgress = true; dragStartedAt = Date.now();
+  try { e.dataTransfer.setData("text/plain", JSON.stringify(draggedItem)); e.dataTransfer.effectAllowed = 'move'; } catch (err) {}
+  if (e.currentTarget && e.currentTarget.classList) e.currentTarget.classList.add('dragging');
+}
+function handleDragEnd(e) {
+  dragInProgress = false; draggedItem = null;
+  if (e && e.currentTarget && e.currentTarget.classList) e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kanban-column.drag-over').forEach(c => c.classList.remove('drag-over'));
+}
+function handleDragOver(e, boardType) {
+  if (!draggedItem || draggedItem.board !== boardType) return;   // مش مسموح الإفلات في بورد تاني
+  e.preventDefault();
+  try { e.dataTransfer.dropEffect = 'move'; } catch (err) {}
+  e.currentTarget.classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;   // لسه جوا نفس العمود
+  e.currentTarget.classList.remove('drag-over');
+}
+function handleDrop(e, boardType, targetStatus) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  let data = draggedItem;
+  if (!data) {
+    try { data = JSON.parse(e.dataTransfer.getData("text/plain")); } catch (err) { return; }
+  }
+  draggedItem = null; dragInProgress = false;
+  if (!data || typeof data.id !== 'string' || data.board !== boardType) return;
+  const list = boardType === 'projects' ? projects : assignedTasks;
+  const task = list.find(t => t.id === data.id);
+  if (!task || task.status === targetStatus) return;
+  const allowed = boardType === 'projects' ? canSeeProjectTask(task) : canSeeAssignedTask(task);
+  if (!allowed) return;
+  task.status = targetStatus;
+  task.updatedAt = Date.now();
+  syncAndUpgradeSystemFile();
+}
+
+function renderKanban() {
+  const todoList = document.getElementById('todo-list');
+  const inprogList = document.getElementById('inprogress-list');
+  const doneList = document.getElementById('done-list');
+  if (!todoList || !inprogList || !doneList) return;
+  todoList.innerHTML = ''; inprogList.innerHTML = ''; doneList.innerHTML = '';
+  let cTodo = 0, cInprog = 0, cDone = 0;
+  const selectedPriority = readFilterValue('projectPriorityFilter', 'all');
+  const searchText = readFilterValue('projectSearchInput', '').trim().toLowerCase();
+  const deadlineMode = readFilterValue('projectDeadlineFilter', 'all');
+
+  projects.forEach(task => {
+    if (!canSeeProjectTask(task)) return;
+    if (selectedPriority !== 'all' && task.priority !== selectedPriority) return;
+    if (!taskMatchesSearch(task, searchText)) return;
+    if (!taskMatchesDeadlineFilter(task, deadlineMode)) return;
+
+    const card = document.createElement('div');
+    card.className = `task-card`;
+    card.setAttribute('draggable', 'true');
+    card.ondragstart = (e) => handleDragStart(e, task.id, 'projects');
+    card.ondragend = (e) => handleDragEnd(e);
+
+    const isInProgressChecked = (task.status === 'In Progress' || task.status === 'Done') ? 'checked' : '';
+    const isDoneChecked = (task.status === 'Done') ? 'checked' : '';
+    let priColor = task.priority === 'High' ? '#dc2626' : (task.priority === 'Low' ? '#10b981' : '#f59e0b');
+    let priBadge = task.priority ? `<span style="font-size: 10px; background: ${priColor}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${escapeHTML(task.priority)}</span>` : '';
+
+    let formattedDeadline = formatCustomDateTime(task.deadline);
+    let isOverdue = false;
+    if (task.deadline && task.status !== 'Done') {
+      if (new Date(task.deadline) < new Date()) { isOverdue = true; card.classList.add('overdue'); }
+    }
+
+    let emailButtonHTML = '';
+    if (isPrivilegedInfo(currentUserInfo)) {
+      const mailtoUrl = generateMailtoLink(task.emailUser, task.title, task.scope, task.deadline, task);
+      if (mailtoUrl) { emailButtonHTML = `<button class="btn-card-action btn-email-action" onclick="triggerOutlookMail('${mailtoUrl}')">✉ Mail</button>`; }
+    }
+
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+        <div class="task-title" style="margin: 0;">${escapeHTML(task.title)}</div>
+        ${priBadge}
+      </div>
+      <div class="task-details-box">${escapeHTML(task.scope || 'No Details')}</div>
+      <div class="task-routing">
+        <label class="route-option"><input type="checkbox" ${isInProgressChecked} onchange="routeTask('${task.id}', 'In Progress', this.checked)">Move to In Progress</label>
+        <label class="route-option"><input type="checkbox" ${isDoneChecked} onchange="routeTask('${task.id}', 'Done', this.checked)">Move to Done</label>
+      </div>
+      <div class="task-meta">
+        <div class="task-meta-info">
+          <span style="${isOverdue ? 'color:#dc2626; font-weight:bold;' : ''}">📅 ${escapeHTML(formattedDeadline)} ${isOverdue ? ' (Overdue!)' : ''}</span>
+        </div>
+        <div class="card-actions-wrapper">${emailButtonHTML}<button class="btn-card-action btn-delete-action" onclick="deleteIndividualProjectTask('${task.id}')">🗑 Delete</button></div>
+      </div>
+    `;
+    if (task.status === 'To Do') { todoList.appendChild(card); cTodo++; }
+    else if (task.status === 'In Progress') { inprogList.appendChild(card); cInprog++; }
+    else { doneList.appendChild(card); cDone++; }
+  });
+  document.getElementById('todo-count').innerText = cTodo;
+  document.getElementById('inprogress-count').innerText = cInprog;
+  document.getElementById('done-count').innerText = cDone;
+}
+
+function renderAssignedKanban() {
+  const todoList = document.getElementById('assigned-todo-list');
+  const inprogList = document.getElementById('assigned-inprogress-list');
+  const doneList = document.getElementById('assigned-done-list');
+  if (!todoList || !inprogList || !doneList) return;
+  todoList.innerHTML = ''; inprogList.innerHTML = ''; doneList.innerHTML = '';
+  let cTodo = 0, cInprog = 0, cDone = 0;
+  
+  const selectedFilterMember = readFilterValue('assigneeFilter', 'all');
+  const selectedPriority = readFilterValue('priorityFilter', 'all');
+  const searchText = readFilterValue('assignedSearchInput', '').trim().toLowerCase();
+  const deadlineMode = readFilterValue('assignedDeadlineFilter', 'all');
+  const isPrivileged = isPrivilegedInfo(currentUserInfo);
+  const seenMap = getSeenMap();
+  let totalUnread = 0;
+
+  assignedTasks.forEach(task => {
+    if (!canSeeAssignedTask(task)) return;
+    const unreadCount = getUnreadCommentCount(task, seenMap);
+    totalUnread += unreadCount;
+    if (isPrivileged && selectedFilterMember !== 'all' && normalizeId(task.userId) !== normalizeId(selectedFilterMember)) return;
+    if (selectedPriority !== 'all' && task.priority !== selectedPriority) return;
+    if (!taskMatchesSearch(task, searchText)) return;
+    if (!taskMatchesDeadlineFilter(task, deadlineMode)) return;
+
+    const card = document.createElement('div');
+    card.className = `task-card`;
+    card.setAttribute('draggable', 'true');
+    card.ondragstart = (e) => handleDragStart(e, task.id, 'assigned');
+    card.ondragend = (e) => handleDragEnd(e);
+
+    const isInProgressChecked = (task.status === 'In Progress' || task.status === 'Done') ? 'checked' : '';
+    const isDoneChecked = (task.status === 'Done') ? 'checked' : '';
+    
+    // كل المشاركين في التاسك (اليوزر والأدمن والأبر أدمن) بيشوفوا كل التعليقات
+    let commentsCount = (task.comments || []).length;
+    let hasNewCommentIndicator = commentsCount > 0 ? `<span style="background: var(--accent-primary); color: white; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; margin-left: 4px;">💬 ${commentsCount}</span>` : '';
+    
+    let unreadBadge = unreadCount > 0 ? `<span style="background: #dc2626; color: white; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; margin-left: 4px;">🔔 ${unreadCount}</span>` : '';
+    let commentsBtnHTML = `<button class="btn-card-action" style="background:#0284c7; color:#fff;" onclick="openCommentsModal('${task.id}')">💬 Comments ${hasNewCommentIndicator}${unreadBadge}</button>`;
+    let editButtonHTML = isPrivileged ? `<button class="btn-card-action" style="background:var(--btn-secondary-bg); color:var(--btn-secondary-text);" onclick="openEditAssignedTask('${task.id}')">✎ Edit</button>` : '';
+    let adminDeleteButtonHTML = isPrivileged ? `<button class="btn-card-action btn-delete-action" onclick="deleteIndividualAssignedTask('${task.id}')">🗑 Delete</button>` : '';
+    let emailButtonHTML = '';
+    if (isPrivileged) {
+      const mailtoUrl = generateMailtoLink(task.userId, task.title, task.scope, task.deadline, task);
+      if (mailtoUrl) { emailButtonHTML = `<button class="btn-card-action btn-email-action" onclick="triggerOutlookMail('${mailtoUrl}')">✉ Mail</button>`; }
+    }
+
+    let priColor = task.priority === 'High' ? '#dc2626' : (task.priority === 'Low' ? '#10b981' : '#f59e0b');
+    let priBadge = task.priority ? `<span style="font-size: 10px; background: ${priColor}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${escapeHTML(task.priority)}</span>` : '';
+
+    let labelHTML = task.labels ? `<span class="task-tag-badge">${escapeHTML(task.labels)}</span>` : '';
+
+    let creatorMember = teamMembers.find(m => normalizeId(m.userId) === normalizeId(task.createdBy));
+    let creatorName = creatorMember ? creatorMember.name : (task.createdBy || 'Admin');
+    let formattedDeadline = formatCustomDateTime(task.deadline);
+    let isOverdue = false;
+    if (task.deadline && task.status !== 'Done') {
+      if (new Date(task.deadline) < new Date()) { isOverdue = true; card.classList.add('overdue'); }
+    }
+
+    // عرض Request و Priority بجانب بعضهما بالجهة اليمنى بالأعلى
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div class="task-title" style="margin: 0;">${escapeHTML(task.title)}</div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          ${labelHTML}
+          ${priBadge}
+        </div>
+      </div>
+      <span class="assigned-by-badge">✍ <b>Assigned By:</b> ${escapeHTML(creatorName)}</span>
+      <div class="task-details-box">${escapeHTML(task.scope || 'No Details')}</div>
+      <div class="task-routing">
+        <label class="route-option"><input type="checkbox" ${isInProgressChecked} onchange="routeAssignedTask('${task.id}', 'In Progress', this.checked)">Move to In Progress</label>
+        <label class="route-option"><input type="checkbox" ${isDoneChecked} onchange="routeAssignedTask('${task.id}', 'Done', this.checked)">Move to Done</label>
+      </div>
+      <div class="task-meta">
+        <div class="task-meta-info">
+          <span>👤 <b>Assignee:</b> ${escapeHTML(task.assignee)}</span>
+          <span style="${isOverdue ? 'color:#dc2626; font-weight:bold;' : ''}">📅 <b>Deadline:</b> ${escapeHTML(formattedDeadline)} ${isOverdue ? ' (Overdue!)' : ''}</span>
+        </div>
+        <div class="card-actions-wrapper">${emailButtonHTML}${commentsBtnHTML}${editButtonHTML}${adminDeleteButtonHTML}</div>
+      </div>
+    `;
+    if (task.status === 'To Do') { todoList.appendChild(card); cTodo++; }
+    else if (task.status === 'In Progress') { inprogList.appendChild(card); cInprog++; }
+    else { doneList.appendChild(card); cDone++; }
+  });
+  document.getElementById('assigned-todo-count').innerText = cTodo;
+  document.getElementById('assigned-inprogress-count').innerText = cInprog;
+  document.getElementById('assigned-done-count').innerText = cDone;
+  updateNotificationBell(totalUnread);
+}
+
+function updateSelectedAssigneesEmails() {
+  const allBoxes = document.querySelectorAll('.assignee-item-cb');
+  const checkboxes = document.querySelectorAll('.assignee-item-cb:checked');
+  const selectedUserIds = Array.from(checkboxes).map(cb => cb.value);
+  const emailInput = document.getElementById('assignedTaskEmailUser');
+  if (emailInput) {
+    emailInput.value = selectedUserIds.join(', ');
+  }
+  const selectAll = document.getElementById('selectAllAssignees');
+  if (selectAll) selectAll.checked = allBoxes.length > 0 && checkboxes.length === allBoxes.length;
+}
+function toggleSelectAllAssignees(source) {
+  document.querySelectorAll('.assignee-item-cb').forEach(cb => cb.checked = source.checked);
+  updateSelectedAssigneesEmails();
+}
+
+function openCommentsModal(taskId) {
+  const task = assignedTasks.find(t => t.id === taskId);
+  if (!task || !canSeeAssignedTask(task)) return;
+  document.getElementById('activeCommentTaskId').value = taskId;
+  document.getElementById('newCommentText').value = '';
+  renderCommentsList(task);
+  markCommentsSeen(task);
+  openModal('taskCommentsModal');
+  renderAssignedKanban();
+}
+
+function renderCommentsList(task) {
+  const listContainer = document.getElementById('commentsHistoryList');
+  const commentsList = (task.comments || []).slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  if (commentsList.length === 0) { listContainer.innerHTML = '<p style="font-size: 13px; color: var(--text-muted); text-align: center;">No comments available.</p>'; return; }
+  let html = '';
+  commentsList.forEach(c => {
+    const senderMember = teamMembers.find(m => normalizeId(m.userId) === normalizeId(c.userId));
+    const senderName = senderMember ? senderMember.name : c.userId;
+    const roleClass = senderMember ? (senderMember.role === 'UpperAdmin' ? 'role-upperadmin' : (senderMember.role === 'Admin' ? 'role-admin' : 'role-user')) : 'role-user';
+    const roleLabel = senderMember ? senderMember.role : 'User';
+    html += `<div style="background:var(--card-bg); border:1px solid var(--border-color); padding:8px; border-radius:6px; margin-bottom:8px;"><div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);"><span><b>${escapeHTML(senderName)}</b> <span class="role-indicator ${roleClass}" style="margin-left:4px;">${escapeHTML(roleLabel)}</span></span><span>${escapeHTML(c.date)}</span></div><div style="font-size:13px; color:var(--text-main); margin-top:4px; white-space:pre-wrap; word-break:break-word;">${escapeHTML(c.text)}</div></div>`;
+  });
+  listContainer.innerHTML = html;
+  listContainer.scrollTop = listContainer.scrollHeight;
+}
+function refreshOpenCommentsModal() {
+  const modal = document.getElementById('taskCommentsModal');
+  if (!modal || modal.style.display !== 'flex') return;
+  const task = assignedTasks.find(t => t.id === document.getElementById('activeCommentTaskId').value);
+  if (task) { renderCommentsList(task); markCommentsSeen(task); renderAssignedKanban(); } else closeModal('taskCommentsModal');
+}
+
+function saveTaskComment() {
+  const taskId = document.getElementById('activeCommentTaskId').value;
+  const commentText = document.getElementById('newCommentText').value.trim();
+  if (!commentText) return;
+  const task = assignedTasks.find(t => t.id === taskId);
+  if (!task || !canSeeAssignedTask(task)) return;
+  if (!task.comments) task.comments = [];
+  const nowTs = Date.now();
+  task.comments.push({ id: 'c-' + nowTs + '-' + Math.floor(Math.random() * 100000), userId: currentUserSession, text: commentText.slice(0, 1000), date: new Date().toLocaleString(), ts: nowTs });
+  task.updatedAt = nowTs;
+  document.getElementById('newCommentText').value = '';
+  syncAndUpgradeSystemFile();
+  const fresh = assignedTasks.find(t => t.id === taskId);
+  if (fresh) { renderCommentsList(fresh); markCommentsSeen(fresh); }
+}
+
+function generateMailtoLink(rawUsernames, title, scope, deadline, extras) {
+  if (!rawUsernames || rawUsernames.trim() === '') return '';
+  const emailsArray = rawUsernames.split(',').map(user => user.trim()).filter(user => user.length > 0).map(user => user.includes('@') ? user : user + '@example.com');
+  const fullEmailsString = emailsArray.join(',');
+  const emailSubject = encodeURIComponent(title);
+  const formattedDeadline = formatCustomDateTime(deadline);
+  let extraLines = '';
+  if (extras && extras.priority) { extraLines += `Priority: ${extras.priority}\n`; }
+  if (extras && extras.labels) { extraLines += `Label: ${extras.labels}\n`; }
+  const formattedBody = `Please check the tool and check mail for this task.\n\nDeadline: ${formattedDeadline}\n${extraLines}\nNote:\n${scope || ''}\n\nBest Regards,`;
+  return `mailto:${fullEmailsString}?subject=${emailSubject}&body=${encodeURIComponent(formattedBody)}`.replace(/'/g, '%27');
+}
+
+function triggerOutlookMail(mailtoUrl) { if (currentUserInfo && currentUserInfo.role !== 'User') window.location.href = mailtoUrl; }
+
+function exportAndClearSystemData() {
+  if (!isPrivilegedInfo(currentUserInfo)) {
+    alert("Security Error: Access Denied. Only system Admins are authorized to export reports!");
+    return;
+  }
+  // كل أدمن بيصدّر ويمسح بياناته هو بس (الأبر أدمن بيشوف الكل)
+  const myProjects = projects.filter(t => canSeeProjectTask(t));
+  const myAssigned = assignedTasks.filter(t => canSeeAssignedTask(t));
+  if (myProjects.length + myAssigned.length === 0) { alert("There is no data to export."); return; }
+  if (!confirm(`Export ${myProjects.length + myAssigned.length} task(s) to a CSV file and remove them from the system?`)) return;
+
+  const q = (v) => {
+    let s = String(v == null ? '' : v);
+    if (/^[=+\-@]/.test(s)) s = "'" + s;   // حماية من Excel formulas
+    return `"${s.replace(/"/g, '""')}"`;
+  };
+  const commentsText = (t) => (t.comments || []).map(c => {
+    const m = teamMembers.find(x => normalizeId(x.userId) === normalizeId(c.userId));
+    return `${m ? m.name : c.userId}: ${c.text}`;
+  }).join(' | ');
+  const nameOf = (id) => { const m = teamMembers.find(x => normalizeId(x.userId) === normalizeId(id)); return m ? m.name : (id || ''); };
+
+  let csvContent = "\uFEFF";
+  csvContent += "Board Type,Task Summary,Detailed Scope,Assignee/Target Email,Current Status,Creation Date,Target Deadline,Priority,Label,Assigned By,Comments\n";
+  myProjects.forEach(t => {
+    const row = [q("Project Backlog"), q(t.title), q(t.scope), q(t.emailUser), q(t.status), q(formatDateTimeOrBlank(t.creationDate)), q(formatDateTimeOrBlank(t.deadline)), q(t.priority), q(t.labels), q(nameOf(t.createdBy)), q(commentsText(t))];
+    csvContent += row.join(",") + "\n";
+  });
+  myAssigned.forEach(t => {
+    const row = [q("Assigned Board"), q(t.title), q(t.scope), q(`${t.assignee || ''} (${t.userId || ''})`), q(t.status), q(formatDateTimeOrBlank(t.creationDate)), q(formatDateTimeOrBlank(t.deadline)), q(t.priority), q(t.labels), q(nameOf(t.createdBy)), q(commentsText(t))];
+    csvContent += row.join(",") + "\n";
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", `MIS_Tasks_Report_${normalizeId(currentUserSession)}_${dateStr}.csv`);
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+
+  projects = projects.filter(t => myProjects.indexOf(t) === -1);
+  assignedTasks = assignedTasks.filter(t => myAssigned.indexOf(t) === -1);
+  syncAndUpgradeSystemFile();
+  alert("Success: your tasks were exported to CSV and cleared successfully!");
+}
+
+function deleteIndividualProjectTask(taskId) { projects = projects.filter(t => t.id !== taskId); syncAndUpgradeSystemFile(); }
+function deleteIndividualAssignedTask(taskId) { assignedTasks = assignedTasks.filter(t => t.id !== taskId); syncAndUpgradeSystemFile(); }
+
+function openModal(modalId) {
+  if (modalId === 'assignedTaskModal') {
+    const form = document.getElementById('assignedTaskForm');
+    if (form) form.reset();
+    document.getElementById('assignedTaskEmailUser').value = '';
+    document.querySelectorAll('.assignee-item-cb').forEach(cb => cb.checked = false);
+    const selectAll = document.getElementById('selectAllAssignees'); if (selectAll) selectAll.checked = false;
+    document.getElementById('assignedTaskStatus').value = 'To Do';
+    document.getElementById('assignedTaskPriority').value = 'Medium';
+    document.getElementById('assignedTaskEditId').value = '';
+    document.getElementById('assignedModalTitle').innerText = 'Assign Task to Team Member';
+    document.getElementById('assignedSubmitBtn').innerText = 'Assign Task';
+  } else if (modalId === 'taskModal') {
+    const form = document.getElementById('taskForm');
+    if (form) form.reset();
+  }
+  document.getElementById(modalId).style.display = 'flex';
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+  if (modalId === 'assignedTaskModal') {
+    const form = document.getElementById('assignedTaskForm');
+    if (form) form.reset();
+  } else if (modalId === 'taskModal') {
+    const form = document.getElementById('taskForm');
+    if (form) form.reset();
+  }
+}
+
+function clearDoneTasks() { projects = projects.filter(t => !(t.status === 'Done' && canSeeProjectTask(t))); syncAndUpgradeSystemFile(); }
+function clearAssignedDoneTasks() { assignedTasks = assignedTasks.filter(t => !(t.status === 'Done' && canSeeAssignedTask(t))); syncAndUpgradeSystemFile(); }
+
+function routeTask(taskId, targetStatus, isChecked) {
+  const task = projects.find(t => t.id === taskId); if (!task) return;
+  task.status = targetStatus === 'In Progress' ? (isChecked ? 'In Progress' : 'To Do') : (isChecked ? 'Done' : 'In Progress');
+  task.updatedAt = Date.now();
+  syncAndUpgradeSystemFile();
+}
+
+function routeAssignedTask(taskId, targetStatus, isChecked) {
+  const task = assignedTasks.find(t => t.id === taskId); if (!task) return;
+  task.status = targetStatus === 'In Progress' ? (isChecked ? 'In Progress' : 'To Do') : (isChecked ? 'Done' : 'In Progress');
+  task.updatedAt = Date.now();
+  syncAndUpgradeSystemFile();
+}
+
+function saveTask(e) {
+  e.preventDefault();
+  const nowTs = Date.now();
+  projects.push({ id: 't-' + nowTs, title: document.getElementById('taskTitle').value, scope: document.getElementById('taskScope').value, priority: document.getElementById('taskPriority').value, status: document.getElementById('taskStatus').value, deadline: document.getElementById('taskDeadline').value, createdBy: currentUserSession, creationDate: new Date(nowTs).toISOString(), updatedAt: nowTs });
+  document.getElementById('taskForm').reset();
+  closeModal('taskModal'); 
+  syncAndUpgradeSystemFile();
+}
+
+function saveAssignedTask(e) {
+  e.preventDefault();
+  if (document.getElementById('assignedTaskEditId').value) { saveEditedAssignedTask(document.getElementById('assignedTaskEditId').value); return; }
+  const checkboxes = document.querySelectorAll('.assignee-item-cb:checked');
+  if (checkboxes.length === 0) return;
+  const titleVal = document.getElementById('assignedTaskTitle').value;
+  const scopeVal = document.getElementById('assignedTaskScope').value;
+  const statusVal = document.getElementById('assignedTaskStatus').value;
+  const deadlineVal = document.getElementById('assignedTaskDeadline').value;
+  const priorityVal = document.getElementById('assignedTaskPriority').value;
+  const labelsVal = document.getElementById('assignedTaskLabels') ? document.getElementById('assignedTaskLabels').value : '';
+  const emailUserVal = document.getElementById('assignedTaskEmailUser').value;
+
+  if (emailUserVal && emailUserVal.trim() !== '') {
+    const mailtoUrl = generateMailtoLink(emailUserVal, titleVal, scopeVal, deadlineVal, { priority: priorityVal, labels: labelsVal });
+    if (mailtoUrl) triggerOutlookMail(mailtoUrl);
+  }
+
+  const nowTs = Date.now();
+  checkboxes.forEach((cb, index) => {
+    assignedTasks.push({ id: 'at-' + nowTs + '-' + index, title: titleVal, scope: scopeVal, assignee: cb.getAttribute('data-name'), userId: cb.value, status: statusVal, deadline: deadlineVal, priority: priorityVal, labels: labelsVal, comments: [], createdBy: currentUserSession, creationDate: new Date(nowTs).toISOString(), reminderSent: false, updatedAt: nowTs });
+  });
+  
+  document.getElementById('assignedTaskForm').reset();
+  closeModal('assignedTaskModal'); 
+  syncAndUpgradeSystemFile();
+}
+
+function openEditAssignedTask(taskId) {
+  const task = assignedTasks.find(t => t.id === taskId);
+  if (!task || !isPrivilegedInfo(currentUserInfo) || !canSeeAssignedTask(task)) return;
+  openModal('assignedTaskModal');   // بيفضّي الفورم ويرجّعه لوضع الإضافة، وبعدها نملاه ببيانات التاسك
+  document.getElementById('assignedTaskEditId').value = taskId;
+  document.getElementById('assignedModalTitle').innerText = 'Edit Task';
+  document.getElementById('assignedSubmitBtn').innerText = 'Save Changes';
+  document.getElementById('assignedTaskTitle').value = task.title || '';
+  document.getElementById('assignedTaskScope').value = task.scope || '';
+  document.getElementById('assignedTaskPriority').value = task.priority || 'Medium';
+  document.getElementById('assignedTaskLabels').value = task.labels || '';
+  document.getElementById('assignedTaskStatus').value = task.status || 'To Do';
+  document.getElementById('assignedTaskDeadline').value = task.deadline || '';
+  document.querySelectorAll('.assignee-item-cb').forEach(cb => { cb.checked = normalizeId(cb.value) === normalizeId(task.userId); });
+  updateSelectedAssigneesEmails();
+}
+
+function saveEditedAssignedTask(editId) {
+  const task = assignedTasks.find(t => t.id === editId);
+  if (!task || !canSeeAssignedTask(task)) { closeModal('assignedTaskModal'); return; }
+  const ticked = document.querySelectorAll('.assignee-item-cb:checked');
+  if (ticked.length > 1) { alert('When editing a task, select only ONE assignee.'); return; }
+  const oldDeadline = task.deadline, oldUserId = task.userId;
+  task.title = document.getElementById('assignedTaskTitle').value;
+  task.scope = document.getElementById('assignedTaskScope').value;
+  task.priority = document.getElementById('assignedTaskPriority').value;
+  task.labels = document.getElementById('assignedTaskLabels').value;
+  task.status = document.getElementById('assignedTaskStatus').value;
+  task.deadline = document.getElementById('assignedTaskDeadline').value;
+  if (ticked.length === 1) { task.userId = ticked[0].value; task.assignee = ticked[0].getAttribute('data-name'); }   // نقل التاسك لشخص تاني
+  const deadlineChanged = oldDeadline !== task.deadline;
+  const assigneeChanged = normalizeId(oldUserId) !== normalizeId(task.userId);
+  if (deadlineChanged) task.reminderSent = false;   // الديدلاين اتغير: التنبيه يشتغل من جديد
+  task.updatedAt = Date.now();
+  closeModal('assignedTaskModal');
+  syncAndUpgradeSystemFile();
+  if ((deadlineChanged || assigneeChanged) && confirm('Send an update email to ' + task.assignee + '?')) {
+    const mailtoUrl = generateMailtoLink(task.userId, '[Updated] ' + task.title, task.scope, task.deadline, task);
+    if (mailtoUrl) triggerOutlookMail(mailtoUrl);
+  }
+}
+
+function toggleRoutine(id, type) {
+  const list = type === 'daily' ? dailyMails : (type === 'weekly' ? weeklyMails : monthlyMails);
+  const item = list.find(x => x.id === id);
+  if (item) {
+    if (isRoutineDoneNow(item, type)) { item.completed = false; item.completedAt = null; }
+    else { item.completed = true; item.completedAt = Date.now(); }
+    item.updatedAt = Date.now();
+  }
+  syncAndUpgradeSystemFile();
+}
+
+function addCustomRoutine(type) {
+  const modal = document.getElementById('routineModal');
+  if (!modal) return;
+  document.getElementById('routineModalType').value = type;
+  document.getElementById('routineModalName').value = '';
+  document.getElementById('routineModalTitle').innerText = `Add Custom ${type.charAt(0).toUpperCase() + type.slice(1)} Task`;
+  document.getElementById('routineModalDayGroup').style.display = type === 'weekly' ? 'block' : 'none';
+  document.getElementById('routineModalDateGroup').style.display = type === 'monthly' ? 'block' : 'none';
+  modal.style.display = 'flex';
+}
+
+function closeRoutineModal() { document.getElementById('routineModal').style.display = 'none'; }
+
+function saveCustomRoutineModal() {
+  const type = document.getElementById('routineModalType').value;
+  const taskName = document.getElementById('routineModalName').value.trim();
+  const priorityVal = document.getElementById('routineModalPriority').value;
+  if (!taskName) return;
+  const nowTs = Date.now();
+  if (type === 'daily') dailyMails.push({ id: 'd-custom-' + nowTs, name: taskName, priority: priorityVal, completed: false, userId: currentUserSession, isCustom: true, updatedAt: nowTs });
+  else if (type === 'weekly') weeklyMails.push({ id: 'w-custom-' + nowTs, name: taskName, day: document.getElementById('routineModalDay').value, priority: priorityVal, completed: false, userId: currentUserSession, isCustom: true, updatedAt: nowTs });
+  else if (type === 'monthly') monthlyMails.push({ id: 'm-custom-' + nowTs, name: taskName, dayOfMonth: parseInt(document.getElementById('routineModalDayOfMonth').value, 10), priority: priorityVal, completed: false, userId: currentUserSession, isCustom: true, updatedAt: nowTs });
+  closeRoutineModal(); syncAndUpgradeSystemFile(); renderRoutines();
+}
+
+function deleteCustomRoutine(id, type) {
+  if (confirm("Delete this custom routine?")) {
+    if (type === 'daily') dailyMails = dailyMails.filter(item => item.id !== id);
+    else if (type === 'weekly') weeklyMails = weeklyMails.filter(item => item.id !== id);
+    else if (type === 'monthly') monthlyMails = monthlyMails.filter(item => item.id !== id);
+    syncAndUpgradeSystemFile(); renderRoutines();
+  }
+}
+
+function renderRoutines() {
+  const dPending = document.getElementById('daily-pending-container'), dDone = document.getElementById('daily-done-container');
+  const wPending = document.getElementById('weekly-pending-container'), wDone = document.getElementById('weekly-done-container');
+  const mPending = document.getElementById('monthly-pending-container'), mDone = document.getElementById('monthly-done-container');
+  if (!dPending || !dDone) return;
+  dPending.innerHTML = `<div style="margin-bottom: 12px;"><button onclick="addCustomRoutine('daily')" class="btn" style="padding: 6px 12px; font-size: 12px;">➕ Add Daily Task</button></div>`; dDone.innerHTML = '';
+  wPending.innerHTML = `<div style="margin-bottom: 12px;"><button onclick="addCustomRoutine('weekly')" class="btn" style="padding: 6px 12px; font-size: 12px;">➕ Add Weekly Task</button></div>`; wDone.innerHTML = '';
+  mPending.innerHTML = `<div style="margin-bottom: 12px;"><button onclick="addCustomRoutine('monthly')" class="btn" style="padding: 6px 12px; font-size: 12px;">➕ Add Monthly Task</button></div>`; mDone.innerHTML = '';
+
+  const isPrivileged = isPrivilegedInfo(currentUserInfo);
+
+  const dailyPri = readFilterValue('dailyPriorityFilter', 'all');
+  const weeklyPri = readFilterValue('weeklyPriorityFilter', 'all');
+  const monthlyPri = readFilterValue('monthlyPriorityFilter', 'all');
+  const overdueTag = (isOverdue) => isOverdue ? `<span style="color:#dc2626; font-weight:bold; font-size:10px; margin-left:6px;">⚠ Overdue</span>` : '';
+  const priBadgeOf = (pri) => {
+    const priColor = pri === 'High' ? '#dc2626' : (pri === 'Low' ? '#10b981' : '#f59e0b');
+    return `<span style="font-size: 9px; background: ${priColor}; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${escapeHTML(pri)}</span>`;
+  };
+  const delBtnOf = (item, type) => (item.isCustom || isPrivileged) ? `<button onclick="deleteCustomRoutine('${item.id}', '${type}')" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:12px;">🗑️</button>` : '';
+
+  dailyMails.forEach(item => {
+    if (normalizeId(item.userId) !== normalizeId(currentUserSession)) return;
+    const pri = item.priority || 'High';
+    if (dailyPri !== 'all' && pri !== dailyPri) return;
+    const doneNow = isRoutineDoneNow(item, 'daily');
+    const div = document.createElement('div'); div.className = `routine-item ${doneNow ? 'done' : ''}`;
+    div.innerHTML = `<div style="display:flex; align-items:center; flex-grow:1;"><input type="checkbox" class="routine-checkbox" ${doneNow ? 'checked' : ''} onchange="toggleRoutine('${item.id}', 'daily')"><span class="routine-text">${escapeHTML(item.name)}</span>${priBadgeOf(pri)}</div>${delBtnOf(item, 'daily')}`;
+    if (doneNow) dDone.appendChild(div); else dPending.appendChild(div);
+  });
+
+  weeklyMails.forEach(item => {
+    if (normalizeId(item.userId) !== normalizeId(currentUserSession)) return;
+    const pri = item.priority || 'High';
+    if (weeklyPri !== 'all' && pri !== weeklyPri) return;
+    const doneNow = isRoutineDoneNow(item, 'weekly');
+    const div = document.createElement('div'); div.className = `routine-item ${doneNow ? 'done' : ''}`;
+    div.innerHTML = `<div style="display:flex; align-items:center; flex-grow:1;"><input type="checkbox" class="routine-checkbox" ${doneNow ? 'checked' : ''} onchange="toggleRoutine('${item.id}', 'weekly')"><span class="routine-text">${escapeHTML(item.name)}</span><span style="background:var(--border-color); padding:2px 6px; border-radius:10px; font-size:10px; margin-left:8px;">${escapeHTML(item.day)}</span>${overdueTag(!doneNow && isRoutineOverdue(item, 'weekly'))}${priBadgeOf(pri)}</div>${delBtnOf(item, 'weekly')}`;
+    if (doneNow) wDone.appendChild(div); else wPending.appendChild(div);
+  });
+
+  monthlyMails.forEach(item => {
+    if (normalizeId(item.userId) !== normalizeId(currentUserSession)) return;
+    const pri = item.priority || 'High';
+    if (monthlyPri !== 'all' && pri !== monthlyPri) return;
+    const doneNow = isRoutineDoneNow(item, 'monthly');
+    const dom = getRoutineDayOfMonth(item);
+    const dateBadge = dom ? `<span style="background:var(--border-color); padding:2px 6px; border-radius:10px; font-size:10px; margin-left:8px;">📅 Day ${dom}</span>` : '';
+    const div = document.createElement('div'); div.className = `routine-item ${doneNow ? 'done' : ''}`;
+    div.innerHTML = `<div style="display:flex; align-items:center; flex-grow:1;"><input type="checkbox" class="routine-checkbox" ${doneNow ? 'checked' : ''} onchange="toggleRoutine('${item.id}', 'monthly')"><span class="routine-text">${escapeHTML(item.name)}</span>${dateBadge}${overdueTag(!doneNow && isRoutineOverdue(item, 'monthly'))}${priBadgeOf(pri)}</div>${delBtnOf(item, 'monthly')}`;
+    if (doneNow) mDone.appendChild(div); else mPending.appendChild(div);
+  });
+}
+
+function buildDynamicTeamUI() {
+  const dropdownContainer = document.getElementById('assigneeDropdownList');
+  const filterSelect = document.getElementById('assigneeFilter');
+  if (!dropdownContainer || !filterSelect) return;
+  const availableMembers = getAssignableMembers();   // الأدمن بيشوف يوزرز التيم بتاعه بس (managedUsers)
+  let dropdownHTML = `<label class="dropdown-item-option" style="border-bottom: 1px solid var(--border-color); background-color: var(--input-bg);"><input type="checkbox" id="selectAllAssignees" onchange="toggleSelectAllAssignees(this)"> [ Select All / اختيار الكل ]</label>`;
+
+  availableMembers.forEach(member => {
+    dropdownHTML += `<label class="dropdown-item-option"><input type="checkbox" class="assignee-item-cb" value="${escapeHTML(member.userId)}" data-name="${escapeHTML(member.name)}" onchange="updateSelectedAssigneesEmails()"> ${escapeHTML(member.name)}</label>`;
+  });
+  dropdownContainer.innerHTML = dropdownHTML;
+  
+  if (isPrivilegedInfo(currentUserInfo)) {
+    const previous = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">All Team Members</option>';
+    availableMembers.forEach(member => {
+      const opt = document.createElement('option'); opt.value = member.userId; opt.innerText = member.name; filterSelect.appendChild(opt);
+    });
+    if (previous && Array.from(filterSelect.options).some(o => o.value === previous)) filterSelect.value = previous;
+  }
+}
+
+function escapeHTML(str) { return String(str == null ? '' : str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
+
+window.onload = function() {
+  validateTeamConfig();
+  buildDynamicTeamUI();
+  checkAuthenticationState();
+  applyRoleSecurityLocks();
+  renderKanban();
+  renderAssignedKanban();
+  renderRoutines();
+  startCentralAutoFetchLoop();
+  setTimeout(checkUpcomingDeadlinesAndAlert, 1500);
+}
+</script>
+</body>
+</html>
