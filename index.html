@@ -17,31 +17,30 @@
 // تعديل أي حاجة هنا بيتطبق فوراً (القائمة دي مش بتتخزن في ملف الـ JSON).
 // تقسيم التيمات تحت مجرد مثال - عدّله حسب التيمات الفعلية.
 // =====================================================================
-// مصدر بيانات الفريق:
-//   true  = من ملف users.csv الموجود جنب السيرفر (اليوزرز والأسماء والأدوار والباسورد وmanagedUsers).
-//   false = من القائمة DEFAULT_TEAM_MEMBERS تحت (للتجربة بدون سيرفر / نسخة GitHub Demo).
-const TEAM_FROM_FILE = false;
-const DEMO_MODE = true;   // true في نسخة العرض على GitHub (من غير سيرفر)
-
-// قائمة الحسابات التجريبية لنسخة GitHub (Demo Team Members)
-// role: "User" | "Admin" | "UpperAdmin"  -  managedUsers: ["id1","id2"] أو ["all"]
 const DEFAULT_TEAM_MEMBERS = [
-  { name: "Karim Ali", userId: "karim_admin", role: "UpperAdmin", password: "demo123" },
-  { name: "Sarah Jenkins", userId: "sarah_ops", role: "Admin", password: "demo123", managedUsers: ["alex_m", "john_d", "emma_s"] },
-  { name: "Alex Miller", userId: "alex_m", role: "User", password: "" },
-  { name: "John Davis", userId: "john_d", role: "User", password: "" },
-  { name: "Emma Smith", userId: "emma_s", role: "User", password: "" },
-  { name: "David Kim", userId: "david_k", role: "User", password: "" }
+  { name: "Demo Admin (Team A)", userId: "demo_admin", role: "Admin", password: "demo123", managedUsers: ["alex", "sara", "omar"] },
+  { name: "Demo Upper Admin", userId: "demo_upper", role: "UpperAdmin", password: "demo123" },
+  { name: "Demo Admin (Team B)", userId: "demo_admin2", role: "Admin", password: "demo123", managedUsers: ["lina", "youssef"] },
+  { name: "Alex Morgan", userId: "alex", role: "User" },
+  { name: "Sara Khaled", userId: "sara", role: "User" },
+  { name: "Omar Nabil", userId: "omar", role: "User" },
+  { name: "Lina Hassan", userId: "lina", role: "User" },
+  { name: "Youssef Adel", userId: "youssef", role: "User" }
 ];
 
-const AUTO_LOGIN_FROM_WINDOWS_USER = false;
+// DEMO_MODE = true : نسخة العرض على GitHub Pages (من غير سيرفر - الداتا بتتحفظ في متصفح الزائر بس)
+// DEMO_MODE = false: النسخة الحقيقية مع MIS_Backend_Server.ps1
+const DEMO_MODE = true;
+
+// الدخول التلقائي: ملف الـ bat بيبعت اسم مستخدم Citrix في رابط الصفحة (?user=...) والصفحة بتتعرف عليه وتدخّله.
+// لو الصفحة اتفتحت بدون الـ bat أو المستخدم مش مسجل هنا: شاشة اللوجين العادية بتظهر.
+const AUTO_LOGIN_FROM_WINDOWS_USER = true;
+// true  = الأدمن والأبر أدمن بيدخلوا مباشرة من غير باسورد.
+// false = بيتعرف عليهم تلقائياً بس بيطلب منهم الباسورد.
 const ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD = false;
 
 // تنبيه الأدمن قبل ديدلاين التاسك (اللي هو أسنده) بكام ساعة
 const REMINDER_HOURS_BEFORE_DEADLINE = 2;
-
-// إعادة رسم الكروت بالوقت (عشان Overdue والروتين اليومي يتحدّثوا لوحدهم حتى لو الداتا ماتغيّرتش). 0 = إيقاف
-const VIEW_REFRESH_MINUTES = 5;
 
 // عنوان السيرفر المحلي (لازم يطابق $port في MIS_Backend_Server.ps1)
 const SERVER_BASE_URL = "http://localhost:8080/";
@@ -124,9 +123,6 @@ body.theme-purple {
   --desc-box-bg: rgba(139, 92, 246, 0.06);
 }
 
-/* لحظة تغيير الثيم بس: وقف الحركة عشان التبديل يبقى فوري (خصوصاً على Citrix) */
-body.theme-switching, body.theme-switching * { transition: none !important; }
-
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 body { background-color: var(--bg-color); color: var(--text-main); padding: 30px; transition: background 0.3s, color 0.3s; }
 
@@ -151,8 +147,6 @@ header p { color: var(--text-muted); font-size: 14px; margin-top: 5px; }
 .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 1px; flex-wrap: wrap; }
 .tab-btn { background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px; margin-bottom: 10px; transition: all 0.2s; }
 .tab-btn.active { color: #ffffff; background-color: var(--accent-primary); border-color: var(--accent-primary); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
 
 .actions-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -209,10 +203,10 @@ header p { color: var(--text-muted); font-size: 14px; margin-top: 5px; }
   border: 1px solid var(--border-color);
 }
 
+
 .task-routing { display: flex; flex-direction: column; gap: 6px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px; }
 .route-option { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; }
 .route-option input { margin-right: 8px; accent-color: var(--accent-primary); cursor: pointer; }
-.route-option input:disabled { cursor: not-allowed; opacity: 0.5; }
 
 .task-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 10px; align-items: center; flex-wrap: wrap; gap: 8px; }
 .task-meta-info { display: flex; flex-direction: column; gap: 3px; }
@@ -227,238 +221,6 @@ header p { color: var(--text-muted); font-size: 14px; margin-top: 5px; }
 .routine-checkbox { width: 18px; height: 18px; margin-right: 12px; cursor: pointer; accent-color: var(--accent-success); }
 .routine-text { font-size: 14px; font-weight: 600; flex-grow: 1; color: var(--text-main); }
 
-/* ========================================================================= */
-/* ======= MEETING TRACKER & MINUTES STYLING (مُنسق الاجتماعات) ============= */
-/* ========================================================================= */
-.meeting-split-view {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 25px;
-  min-height: 600px;
-}
-@media (max-width: 1024px) {
-  .meeting-split-view { grid-template-columns: 1fr; }
-}
-
-.meeting-sidebar {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-.meeting-sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 12px;
-}
-.meeting-sidebar-header h3 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-.meeting-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow-y: auto;
-  max-height: 520px;
-  padding-right: 4px;
-}
-.meeting-item-card {
-  background-color: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  position: relative;
-}
-.meeting-item-card:hover {
-  border-color: var(--accent-primary);
-  transform: translateY(-1px);
-}
-.meeting-item-card.active {
-  border-color: var(--accent-primary);
-  border-left: 4px solid var(--accent-primary);
-  background-color: var(--desc-box-bg);
-}
-.meeting-card-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 4px;
-}
-.meeting-card-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.meeting-workspace {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.meeting-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 400px;
-  color: var(--text-muted);
-  gap: 12px;
-}
-.meeting-header-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 15px;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 16px;
-}
-.meeting-header-info h2 {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent-primary);
-}
-.meeting-header-info p {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-.meeting-attendees-badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-.meeting-attendee-tag {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background-color: var(--desc-box-bg);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-}
-.meeting-actions-toolbar {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.meeting-columns-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 20px;
-}
-@media (max-width: 900px) {
-  .meeting-columns-grid { grid-template-columns: 1fr; }
-}
-
-.meeting-notes-box {
-  background-color: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.meeting-notes-box h4 {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.meeting-notes-textarea {
-  width: 100%;
-  min-height: 320px;
-  background-color: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 13px;
-  color: var(--text-main);
-  line-height: 1.6;
-  resize: vertical;
-  outline: none;
-}
-.meeting-notes-textarea:focus {
-  border-color: var(--accent-primary);
-}
-
-.meeting-action-items-box {
-  background-color: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.meeting-action-items-box h4 {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.meeting-actions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow-y: auto;
-  max-height: 380px;
-}
-.meeting-action-item {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.meeting-action-item.done {
-  opacity: 0.65;
-  background-color: rgba(16, 185, 129, 0.04);
-}
-.meeting-action-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-.meeting-action-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: var(--text-muted);
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* Modals */
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
 .modal-content { background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
 .modal-header { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--accent-primary); }
@@ -478,46 +240,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
 .dropdown-checkbox-list { max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background: var(--input-bg); }
 .dropdown-item-option { display: flex !important; align-items: center; gap: 8px; padding: 6px 8px; cursor: pointer; font-size: 13px !important; font-weight: 600 !important; color: var(--text-main); }
 .dropdown-item-option input { accent-color: var(--accent-primary); }
-
-/* شريط الملخص فوق البورد */
-.summary-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.summary-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-left: 4px solid var(--border-color); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; transition: box-shadow 0.15s; }
-.summary-card .summary-value { font-size: 22px; font-weight: 700; color: var(--text-main); line-height: 1.1; }
-.summary-card .summary-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
-.summary-card.clickable { cursor: pointer; }
-.summary-card.clickable:hover { box-shadow: 0 0 0 1px var(--accent-primary); }
-.summary-card.active { box-shadow: 0 0 0 2px var(--accent-primary); }
-.kanban-column.flash { border-color: var(--accent-primary); box-shadow: 0 0 0 2px var(--accent-primary); }
-.summary-card.tone-info { border-left-color: #0284c7; }
-.summary-card.tone-ok { border-left-color: #10b981; }
-.summary-card.tone-warn { border-left-color: #f59e0b; }
-.summary-card.tone-danger { border-left-color: #dc2626; }
-.summary-card.tone-danger .summary-value { color: #dc2626; }
-
-/* مؤشر الاتصال بالسيرفر والتنبيهات الفورية */
-.conn-status-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; background-color: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); transition: background-color 0.3s, box-shadow 0.3s; flex-shrink: 0; }
-.conn-status-dot.offline { background-color: #dc2626; box-shadow: 0 0 6px rgba(220, 38, 38, 0.7); }
-.toast-notif-container { position: fixed; bottom: 24px; right: 24px; z-index: 9500; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-.toast-notif-item { pointer-events: auto; background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-primary); padding: 12px 16px; border-radius: 10px; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; cursor: pointer; max-width: 340px; }
-
-/* ===== Creator popup ===== */
-.creator-link { cursor: pointer; color: var(--accent-primary); text-decoration: underline; text-underline-offset: 3px; transition: opacity 0.2s; }
-.creator-link:hover { opacity: 0.75; }
-.creator-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1100; backdrop-filter: blur(4px); padding: 16px; }
-.creator-card { position: relative; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; padding: 26px; color: var(--text-main); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
-.creator-close { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; line-height: 1; }
-.creator-close:hover { color: var(--accent-primary); }
-.creator-head { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--border-color); margin-bottom: 8px; }
-.creator-avatar { width: 56px; height: 56px; border-radius: 50%; background-color: var(--accent-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; flex-shrink: 0; }
-.creator-name { font-size: 18px; font-weight: 700; }
-.creator-role { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-.creator-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; }
-.creator-row a { color: var(--text-main); text-decoration: none; word-break: break-all; }
-.creator-row a:hover { color: var(--accent-primary); }
-.creator-copy-btn { background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
-.creator-copy-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
-.creator-about { background-color: var(--desc-box-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 14px; margin-top: 16px; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
-.creator-about b { color: var(--text-main); }
 </style>
 </head>
 <body>
@@ -525,6 +247,13 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
 <div id="loginScreenOverlay" class="login-screen-overlay">
   <div class="login-card-container">
     <h2>System Login</h2>
+    <div style="font-size: 12px; color: var(--text-muted); text-align: left; background: var(--desc-box-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-bottom: 15px; line-height: 1.7;">
+      <b>Demo accounts</b> (your data stays in your browser only):<br>
+      User: <b>alex</b> (no password)<br>
+      Admin: <b>demo_admin</b> / <b>demo123</b><br>
+      Upper Admin: <b>demo_upper</b> / <b>demo123</b><br>
+      <a href="#" onclick="resetDemoData(); return false;" style="color: var(--accent-primary); font-weight: 600;">Reset demo data</a>
+    </div>
     <div class="form-group" style="margin-bottom: 15px;">
       <label>Username / User ID</label>
       <input type="text" id="loginUsernameInput" class="form-control" placeholder="Enter your username..." autocomplete="off" oninput="handleLoginUsernameChange()" onkeydown="handleLoginKeydown(event)">
@@ -535,17 +264,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
     </div>
     <div id="loginErrorMsg" class="login-error-msg">Incorrect Username or Password. Please try again!</div>
     <button type="button" class="btn" style="width: 100%; margin-top: 15px;" onclick="submitSystemLogin()">Login</button>
-    <div style="margin-top: 20px; padding: 12px; background: var(--desc-box-bg); border: 1px solid var(--border-color); border-radius: 8px; font-size: 11px; text-align: left; line-height: 1.6;">
-      <b style="color: var(--accent-primary);">GitHub Interactive Demo Accounts:</b><br>
-      • <b>UpperAdmin:</b> <code>karim_admin</code> (Password: <code>demo123</code>)<br>
-      • <b>Admin (Team Lead):</b> <code>sarah_ops</code> (Password: <code>demo123</code>)<br>
-      • <b>Team User:</b> <code>alex_m</code> (No password needed)<br>
-      <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
-        <button type="button" class="creator-copy-btn" style="padding: 3px 6px; font-size: 10px;" onclick="fillDemoLogin('karim_admin','demo123')">Fill UpperAdmin</button>
-        <button type="button" class="creator-copy-btn" style="padding: 3px 6px; font-size: 10px;" onclick="fillDemoLogin('sarah_ops','demo123')">Fill Admin</button>
-        <button type="button" class="creator-copy-btn" style="padding: 3px 6px; font-size: 10px;" onclick="fillDemoLogin('alex_m','')">Fill User</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -558,21 +276,19 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
     <div class="header-profile-block">
       <div class="filter-group">
         <select id="themeSelector" class="filter-select" onchange="changeSystemTheme(this.value)">
-          <option value="default">Default e& Red</option>
+          <option value="default">Default Red</option>
           <option value="theme-dark">Dark Mode Professional</option>
           <option value="theme-blue">Blue Corporate</option>
           <option value="theme-emerald">Emerald Green</option>
           <option value="theme-purple">Midnight Purple</option>
         </select>
       </div>
-      <button class="btn-header-action" id="btnNotifications" onclick="switchTab('assigned-tasks-board')" title="Unread comments / new tasks" style="display: none;">🔔 <span id="notifCount">0</span></button>
+      <button class="btn-header-action" id="btnNotifications" onclick="switchTab('assigned-tasks-board')" title="Unread comments" style="display: none;">🔔 <span id="notifCount">0</span></button>
       <div class="user-badge" id="globalUserBadge">
-        <span class="conn-status-dot" id="serverConnDot" title="Server Connected"></span>
         <span id="currentUserNameDisplay">Loading...</span>
         <span class="role-indicator" id="currentUserRoleDisplay">User</span>
       </div>
-      <button class="btn-header-action privileged-action-element" id="btnTopExportOnly" onclick="exportDataOnly()" style="display: none;">Export Only ⤓</button>
-      <button class="btn-header-action privileged-action-element" id="btnTopDeleteData" onclick="deleteMyData()" style="display: none;">Delete Data 🗑</button>
+      <button class="btn-header-action privileged-action-element" id="btnTopDataExport" onclick="exportAndClearSystemData()" style="display: none;">Export & Clear Data ⤓</button>
       <button class="btn-header-action btn-logout" onclick="systemLogout()">Logout ↩</button>
     </div>
   </header>
@@ -580,7 +296,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
   <div class="nav-tabs" id="mainSystemNavTabs">
     <button class="tab-btn active" id="tabBtnBacklog" onclick="switchTab('project-backlog')">Project Backlog Board</button>
     <button class="tab-btn" id="tabBtnAssigned" onclick="switchTab('assigned-tasks-board')">Assigned Tasks Board</button>
-    <button class="tab-btn" id="tabBtnMeetings" onclick="switchTab('meetings-tracker')">Meeting Minutes &amp; Actions</button>
     <button class="tab-btn periodic-tab-element" id="tabBtnDaily" onclick="switchTab('daily-tasks')">Daily Tasks</button>
     <button class="tab-btn periodic-tab-element" id="tabBtnWeekly" onclick="switchTab('weekly-tasks')">Weekly Tasks</button>
     <button class="tab-btn periodic-tab-element" id="tabBtnMonthly" onclick="switchTab('monthly-tasks')">Monthly Tasks</button>
@@ -609,7 +324,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
       </div>
       <button class="btn btn-danger-outline privileged-action-element" onclick="clearDoneTasks()">Clear Completed Tasks</button>
     </div>
-    <div class="summary-strip" id="projectSummaryStrip"></div>
     <div class="kanban-board">
       <div class="kanban-column" data-status="To Do" ondragover="handleDragOver(event, 'projects')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'projects', 'To Do')">
         <div class="column-header"><span>To Do</span><span class="task-count" id="todo-count">0</span></div>
@@ -653,7 +367,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
       </div>
       <button class="btn btn-danger-outline privileged-action-element" id="btnClearCompletedAssigned" onclick="clearAssignedDoneTasks()">Clear Completed Assigned</button>
     </div>
-    <div class="summary-strip" id="assignedSummaryStrip"></div>
     <div class="kanban-board">
       <div class="kanban-column" data-status="To Do" ondragover="handleDragOver(event, 'assigned')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'assigned', 'To Do')">
         <div class="column-header"><span>Assigned To Do</span><span class="task-count" id="assigned-todo-count">0</span></div>
@@ -666,86 +379,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
       <div class="kanban-column" data-status="Done" ondragover="handleDragOver(event, 'assigned')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'assigned', 'Done')">
         <div class="column-header"><span>Assigned Done</span><span class="task-count" id="assigned-done-count">0</span></div>
         <div class="task-list" id="assigned-done-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- ======= MEETING MINUTES & ACTION TRACKER TAB ============================ -->
-  <!-- ========================================================================= -->
-  <div id="meetings-tracker" class="tab-content">
-    <div class="actions-bar" style="margin-bottom: 20px;">
-      <button class="btn" onclick="openNewMeetingModal()">+ Start / Schedule Meeting</button>
-      <div class="filter-group">
-        <input type="text" id="meetingSearchInput" class="filter-select" placeholder="🔍 Search meetings or notes..." autocomplete="off" oninput="renderMeetingsList()">
-      </div>
-    </div>
-
-    <div class="meeting-split-view">
-      <!-- Sidebar / Notebooks List -->
-      <div class="meeting-sidebar">
-        <div class="meeting-sidebar-header">
-          <h3>Meetings Notebook</h3>
-          <span class="task-count" id="meetingsCountBadge">0</span>
-        </div>
-        <div class="meeting-list" id="meetingListContainer">
-          <!-- Meetings cards rendered dynamically -->
-        </div>
-      </div>
-
-      <!-- Active Meeting Workspace -->
-      <div class="meeting-workspace" id="meetingWorkspace">
-        <div class="meeting-empty-state" id="meetingEmptyState">
-          <div style="font-size: 42px;">📝</div>
-          <h3 style="color: var(--text-main);">No Meeting Selected</h3>
-          <p>Select a meeting from the notebook on the left, or click <b>+ Start / Schedule Meeting</b> to create one.</p>
-        </div>
-
-        <div id="meetingActiveContent" style="display: none; flex-direction: column; gap: 20px;">
-          <!-- Meeting Header -->
-          <div class="meeting-header-card">
-            <div class="meeting-header-info">
-              <h2 id="activeMeetingTitle">Meeting Title</h2>
-              <p>📅 <span id="activeMeetingDate">Date</span> &nbsp;•&nbsp; ✍ Organized By: <b id="activeMeetingOrganizer">Organizer</b></p>
-              <div class="meeting-attendees-badges" id="activeMeetingAttendeesBadges"></div>
-            </div>
-            <div class="meeting-actions-toolbar">
-              <button class="btn-card-action" style="background: var(--accent-primary); color: white; padding: 7px 14px; font-size: 12px;" onclick="openAssignTaskForMeeting()">+ Assign Task</button>
-              <button class="btn-card-action" style="background: #0284c7; color: white; padding: 7px 14px; font-size: 12px;" onclick="shareMeetingMinutesMail()">📧 Send Minutes</button>
-              <button class="btn-card-action" style="background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 7px 12px; font-size: 12px;" onclick="copyMeetingMinutesText(this)">📋 Copy</button>
-              <button class="btn-card-action btn-delete-action" style="padding: 7px 12px; font-size: 12px;" onclick="deleteActiveMeeting()">🗑 Delete</button>
-            </div>
-          </div>
-
-          <!-- Meeting Split Workspace: Notes (Left) & Actions/Decisions (Right) -->
-          <div class="meeting-columns-grid">
-            <!-- Notes Notebook -->
-            <div class="meeting-notes-box">
-              <h4>
-                <span>Meeting Notes &amp; Discussion</span>
-                <span id="notesSaveIndicator" style="font-size: 11px; font-weight: 600; color: #10b981; display: none;">Saved ✓</span>
-              </h4>
-              <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Type live notes below. Everything auto-saves instantly.</p>
-              <textarea id="activeMeetingNotesText" class="meeting-notes-textarea" placeholder="Write minutes, discussion points, key ideas, and decisions here..." onkeydown="handleMeetingNotesKeydown(event)" onfocus="handleMeetingNotesFocus(this)" oninput="handleMeetingNotesInput()"></textarea>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="quickActionInput" class="form-control" placeholder="Quick decision or action point..." autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();quickConvertInputToAction();}">
-                <button type="button" class="btn" style="white-space: nowrap; padding: 10px 14px; font-size: 12px;" onclick="quickConvertInputToAction()">Convert to Task ⚡</button>
-              </div>
-            </div>
-
-            <!-- Action Items Tracker -->
-            <div class="meeting-action-items-box">
-              <h4>
-                <span>Action Items &amp; Decisions</span>
-                <span class="task-count" id="activeMeetingActionsCount">0</span>
-              </h4>
-              <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Assigned tasks linked to this meeting. Automatically appears on the Assigned Board.</p>
-              <div class="meeting-actions-list" id="activeMeetingActionsList">
-                <!-- Action items rendered here -->
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -795,39 +428,19 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
     <div class="routine-container"><div class="routine-box"><h3>Pending Monthly Requests</h3><div id="monthly-pending-container"></div></div><div class="routine-box"><h3>Completed This Month</h3><div id="monthly-done-container"></div></div></div>
   </div>
 
-  <div class="system-footer">Created By: <span class="creator-link" role="button" tabindex="0" onclick="openCreatorModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCreatorModal();}">Karim Ali</span></div>
-</div>
-
-<!-- ========================================================================= -->
-<!-- ======= MODALS ========================================================== -->
-<!-- ========================================================================= -->
-
-<!-- Create / Edit Meeting Modal -->
-<div class="modal" id="meetingModal">
-  <div class="modal-content">
-    <div class="modal-header" id="meetingModalTitle">Start / Schedule Meeting</div>
-    <form id="meetingForm" onsubmit="saveMeetingModal(event)">
-      <input type="hidden" id="meetingEditId" value="">
-      <div class="form-group"><label>Meeting Title / Subject</label><input type="text" id="meetingModalTitleInput" class="form-control" required placeholder="e.g. Operations Sync / Project Kickoff" autocomplete="off"></div>
-      <div class="form-group"><label>Meeting Date &amp; Time</label><input type="datetime-local" id="meetingModalDateInput" class="form-control" required></div>
-      <div class="form-group"><label>Attendees / Participants</label><div class="dropdown-checkbox-list" id="meetingAttendeesDropdownList"></div></div>
-      <div class="form-group"><label>Initial Agenda / Objectives</label><textarea id="meetingModalAgendaInput" class="form-control" rows="2" placeholder="Brief topics to discuss..."></textarea></div>
-      <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeModal('meetingModal')">Cancel</button><button type="submit" class="btn" id="meetingModalSubmitBtn">Create Meeting</button></div>
-    </form>
-  </div>
+  <div class="system-footer">Created By: Karim Ali</div>
 </div>
 
 <div class="modal" id="taskModal">
   <div class="modal-content">
-    <div class="modal-header" id="projectModalTitle">Create New Project Task</div>
+    <div class="modal-header">Create New Project Task</div>
     <form id="taskForm" onsubmit="saveTask(event)">
-      <input type="hidden" id="projectTaskEditId" value="">
       <div class="form-group"><label>Task Summary / Title</label><input type="text" id="taskTitle" class="form-control" required autocomplete="off"></div>
       <div class="form-group"><label>Detailed Scope</label><textarea id="taskScope" class="form-control" rows="3"></textarea></div>
       <div class="form-group"><label>Priority Level</label><select id="taskPriority" class="form-control"><option value="Medium">Medium</option><option value="High">High</option><option value="Low">Low</option></select></div>
       <div class="form-group"><label>Initial Status</label><select id="taskStatus" class="form-control"><option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option></select></div>
       <div class="form-group"><label>Target Timeline Deadline</label><input type="datetime-local" id="taskDeadline" class="form-control" required></div>
-      <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeModal('taskModal')">Cancel</button><button type="submit" class="btn" id="projectSubmitBtn">Save Task</button></div>
+      <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeModal('taskModal')">Cancel</button><button type="submit" class="btn">Save Task</button></div>
     </form>
   </div>
 </div>
@@ -837,24 +450,19 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
     <div class="modal-header" id="assignedModalTitle">Assign Task to Team Member</div>
     <form id="assignedTaskForm" onsubmit="saveAssignedTask(event)">
       <input type="hidden" id="assignedTaskEditId" value="">
-      <input type="hidden" id="assignedTaskMeetingId" value="">
       <div class="form-group"><label>Task Summary / Title</label><input type="text" id="assignedTaskTitle" class="form-control" required autocomplete="off"></div>
       <div class="form-group"><label>Detailed Scope</label><textarea id="assignedTaskScope" class="form-control" rows="3"></textarea></div>
       <div class="form-group"><label>Priority Level</label><select id="assignedTaskPriority" class="form-control"><option value="Medium">Medium</option><option value="High">High</option><option value="Low">Low</option></select></div>
       <div class="form-group privileged-action-element">
-        <label>Labels &amp; Tags</label>
-          <select id="assignedTaskLabels" class="form-control" onchange="toggleLabelOther()">
-            <option value="">Select Label...</option><option value="Bug">Bug</option><option value="Request">Request</option><option value="Incident">Incident</option><option value="Reporting">Reporting</option><option value="Routine Task">Routine Task</option><option value="Meeting Action">Meeting Action</option><option value="Urgent">Urgent</option><option value="__other__">Other...</option>
+        <label>Labels & Tags</label>
+          <select id="assignedTaskLabels" class="form-control">
+            <option value="">Select Label...</option><option value="Bug">Bug</option><option value="Request">Request</option><option value="Incident">Incident</option><option value="Reporting">Reporting</option><option value="Routine Task">Routine Task</option><option value="Urgent">Urgent</option>
           </select>
-          <input type="text" id="assignedTaskLabelOther" class="form-control" placeholder="Type the task type..." autocomplete="off" style="display: none; margin-top: 8px;">
       </div>
-      <div class="form-group"><label>Assignee Person Name(s)</label><div class="dropdown-checkbox-list" id="assigneeDropdownList"></div><div id="assigneeWorkloadContainer" style="display: none; margin-top: 8px;"></div></div>
+      <div class="form-group"><label>Assignee Person Name(s)</label><div class="dropdown-checkbox-list" id="assigneeDropdownList"></div></div>
       <div class="form-group"><label>Send Email to Assignee</label><input type="text" id="assignedTaskEmailUser" class="form-control" autocomplete="off" placeholder="Auto-filled on selection..."></div>
       <div class="form-group"><label>Initial Status</label><select id="assignedTaskStatus" class="form-control"><option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option></select></div>
       <div class="form-group"><label>Target Deadline</label><input type="datetime-local" id="assignedTaskDeadline" class="form-control" required></div>
-      <div class="form-group"><label>Repeat This Task</label><select id="assignedTaskRepeat" class="form-control" onchange="toggleRepeatOptions()"><option value="">No repeat (one-time)</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
-      <div class="form-group" id="assignedRepeatDayGroup" style="display: none;"><label>Repeat Every (Day of Week)</label><select id="assignedTaskRepeatDay" class="form-control"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></div>
-      <div class="form-group" id="assignedRepeatDateGroup" style="display: none;"><label>Repeat Every (Day of Month)</label><select id="assignedTaskRepeatDate" class="form-control"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
       <div class="modal-actions"><button type="button" class="btn btn-muted" onclick="closeModal('assignedTaskModal')">Cancel</button><button type="submit" class="btn" id="assignedSubmitBtn">Assign Task</button></div>
     </form>
   </div>
@@ -874,7 +482,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
 
 <div class="modal" id="taskCommentsModal">
   <div class="modal-content">
-    <div class="modal-header" id="commentsModalTitle">Task Comments &amp; Clarifications</div>
+    <div class="modal-header" id="commentsModalTitle">Task Comments & Clarifications</div>
     <input type="hidden" id="activeCommentTaskId">
     <div id="commentsHistoryList" style="max-height: 220px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 15px;"></div>
     <div class="form-group"><label>Add Comment</label><textarea id="newCommentText" class="form-control" rows="3" placeholder="Write comment..."></textarea></div>
@@ -882,73 +490,28 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
   </div>
 </div>
 
-<div class="creator-overlay" id="creatorModal" onclick="if(event.target===this)closeCreatorModal()">
-  <div class="creator-card">
-    <button type="button" class="creator-close" onclick="closeCreatorModal()" aria-label="Close">&times;</button>
-    <div class="creator-head">
-      <div class="creator-avatar">KA</div>
-      <div><div class="creator-name">Karim Ali</div><div class="creator-role">Senior MIS Specialist</div></div>
-    </div>
-    <div class="creator-row"><a href="mailto:karimali12qw@gmail.com">✉ karimali12qw@gmail.com</a><button type="button" class="creator-copy-btn" onclick="copyCreatorText('karimali12qw@gmail.com', this)">Copy</button></div>
-    <div class="creator-row"><span>📞 01116009359</span><button type="button" class="creator-copy-btn" onclick="copyCreatorText('01116009359', this)">Copy</button></div>
-    <div class="creator-row"><a href="https://www.linkedin.com/in/karim-ali-2209151b6/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 6px;"><span>🔗</span><span>LinkedIn: Karim Ali</span></a><button type="button" class="creator-copy-btn" onclick="copyCreatorText('https://www.linkedin.com/in/karim-ali-2209151b6/', this)">Copy</button></div>
-    <div style="margin-top:16px;"><button type="button" class="btn" style="width:100%;" onclick="sendCreatorFeedback()">Send feedback</button></div>
-    <div class="creator-about">
-      <b>About Task Tracker MIS Portal</b><br>
-      Version 2.0 · Enterprise Operations &amp; Intelligence Hub<br><br>
-      • <b>Kanban Workflows:</b> Real-time project backlog &amp; assigned team task management.<br>
-      • <b>Meeting Minutes &amp; Action Tracker:</b> Live meeting notes with bullet points &amp; instant task conversion with Outlook integration.<br>
-      • <b>Operations Routines:</b> Automated daily, weekly &amp; monthly recurring email trackers with deadline monitoring.<br>
-      • <b>Enterprise Citrix Ready:</b> Central multi-user sync with automated daily backups.
-    </div>
-  </div>
-</div>
-
-<div id="toastNotifContainer" class="toast-notif-container"></div>
-
 <script>
-function fillDemoLogin(u, p) {
-  const userInput = document.getElementById('loginUsernameInput');
-  const passInput = document.getElementById('loginPasswordInput');
-  if (userInput) userInput.value = u;
-  handleLoginUsernameChange();
-  if (passInput) passInput.value = p || '';
-}
-
 function syncAndUpgradeSystemFile() {
-  if (DEMO_MODE) {
-    syncStorage();
-    renderKanban();
-    renderAssignedKanban();
-    renderRoutines();
-    renderMeetings();
-    updateConnectionDot(true);
-    return;
+  // قبل الحفظ: اقرأ آخر نسخة من السيرفر وادمج تعديلاتك معاها (عشان ماتمسحش شغل حد تاني)
+  const serverDB = loadCentralDatabaseFromServer();
+  if (serverDB) {
+    projects = mergeCollection(projects, serverDB.projects, lastKnownIds.projects);
+    assignedTasks = mergeCollection(assignedTasks, serverDB.assignedTasks, lastKnownIds.assignedTasks);
+    dailyMails = mergeCollection(dailyMails, serverDB.dailyMails, lastKnownIds.dailyMails);
+    weeklyMails = mergeCollection(weeklyMails, serverDB.weeklyMails, lastKnownIds.weeklyMails);
+    monthlyMails = mergeCollection(monthlyMails, serverDB.monthlyMails, lastKnownIds.monthlyMails);
   }
+  // ملحوظة: بيانات الفريق والباسوردات مابتتبعتش للسيرفر خالص (موجودة في الكود فقط)
+  const systemDataPayload = { projects: projects, assignedTasks: assignedTasks, dailyMails: dailyMails, weeklyMails: weeklyMails, monthlyMails: monthlyMails };
   let saved = false;
-  for (let attempt = 1; attempt <= 6 && !saved; attempt++) {
-    const serverDB = loadCentralDatabaseFromServer();
-    const baseRev = serverRev;
-    if (serverDB) {
-      projects = mergeCollection(projects, serverDB.projects, lastKnownIds.projects);
-      assignedTasks = mergeCollection(assignedTasks, serverDB.assignedTasks, lastKnownIds.assignedTasks);
-      dailyMails = mergeCollection(dailyMails, serverDB.dailyMails, lastKnownIds.dailyMails);
-      weeklyMails = mergeCollection(weeklyMails, serverDB.weeklyMails, lastKnownIds.weeklyMails);
-      monthlyMails = mergeCollection(monthlyMails, serverDB.monthlyMails, lastKnownIds.monthlyMails);
-      meetings = mergeCollection(meetings, serverDB.meetings, lastKnownIds.meetings);
-    }
-    const systemDataPayload = { projects: projects, assignedTasks: assignedTasks, dailyMails: dailyMails, weeklyMails: weeklyMails, monthlyMails: monthlyMails, meetings: meetings };
-    let status = 0;
+  if (!DEMO_MODE) {
     try {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", SERVER_BASE_URL, false);
       xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-      if (serverDB && baseRev !== null) { xhr.setRequestHeader("X-Base-Rev", baseRev); }
       xhr.send(JSON.stringify(systemDataPayload));
-      status = xhr.status;
+      saved = (xhr.status === 200);
     } catch (err) {}
-    if (status === 200) { saved = true; }
-    else if (status !== 409) { break; }
   }
   if (saved) { rememberServerIds(); }
   syncStorage();
@@ -956,201 +519,50 @@ function syncAndUpgradeSystemFile() {
   renderKanban();
   renderAssignedKanban();
   renderRoutines();
-  renderMeetings();
 }
 
 function loadCentralDatabaseFromServer() {
-  if (DEMO_MODE) {
-    updateConnectionDot(true);
-    return null;
-  }
+  if (DEMO_MODE) return null;
   try {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", SERVER_BASE_URL + "?t=" + Date.now(), false);
     xhr.send(null);
-    if (xhr.status === 200) {
-      const rev = xhr.getResponseHeader('X-Rev');
-      serverRev = (rev === null || rev === '') ? null : rev;   // رقم نسخة الداتا اللي قريناها
-      updateConnectionDot(true);
-      return JSON.parse(xhr.responseText);
-    }
+    if (xhr.status === 200) { return JSON.parse(xhr.responseText); }
   } catch (err) {}
-  updateConnectionDot(false);
   return null;
 }
 
-// قراءة غير متزامنة (Async) في الخلفية كل 15 ثانية عشان المتصفح مايتجمدش في Citrix
-function loadCentralDatabaseFromServerAsync(callback) {
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", SERVER_BASE_URL + "?t=" + Date.now(), true);
-    xhr.timeout = 10000;
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        try {
-          const rev = xhr.getResponseHeader('X-Rev');
-          const newRev = (rev === null || rev === '') ? null : rev;
-          const parsed = JSON.parse(xhr.responseText);
-          updateConnectionDot(true);
-          callback(parsed, newRev);
-          return;
-        } catch (e) {}
-      }
-      updateConnectionDot(false);
-      callback(null, null);
-    };
-    xhr.onerror = function() { updateConnectionDot(false); callback(null, null); };
-    xhr.ontimeout = function() { updateConnectionDot(false); callback(null, null); };
-    xhr.send(null);
-  } catch (err) {
-    updateConnectionDot(false);
-    callback(null, null);
-  }
-}
-
-let lastKnownIds = { projects: [], assignedTasks: [], dailyMails: [], weeklyMails: [], monthlyMails: [], meetings: [] };
+let lastKnownIds = { projects: [], assignedTasks: [], dailyMails: [], weeklyMails: [], monthlyMails: [] };
 let serverWarningShown = false;
-let serverRev = null;
-let lastRenderedSnapshot = '';
-let previousNotifTotal = null;
 let dragInProgress = false;
 let dragStartedAt = 0;
 let draggedItem = null;
 let autoLoginSuppressed = false;
 let loginPrefillUser = '';
 let loginPrefillError = '';
-let selectedMeetingId = null;
-let meetingNotesSaveTimer = null;
-const LOCAL_CACHE_KEY = 'mis_cache_v16';
+const LOCAL_CACHE_KEY = 'mis_cache_v15';
 
-// بيانات الفريق بتتقرأ من users.csv عن طريق السيرفر (من غير باسوردات) وبتتحدّث تلقائياً كل 15 ثانية
-const TEAM_CACHE_KEY = 'mis_team_cache_v1';
-let teamWarnings = [];
-let teamServerOutdated = false;
-let teamMembers = loadTeamMembers();
+// بيانات الفريق مصدرها الكود فقط (DEFAULT_TEAM_MEMBERS) - مش من السيرفر ولا من ملف الـ JSON
+const teamMembers = DEFAULT_TEAM_MEMBERS;
 
 // لو السيرفر مش متاح عند الفتح: اعرض آخر نسخة محفوظة محلياً (للقراءة) بدل شاشة فاضية
 let centralDB = loadCentralDatabaseFromServer() || loadLocalCache() || {};
+if (DEMO_MODE && !centralDB.assignedTasks && !centralDB.projects) { centralDB = buildDemoData(); }
 let projects = centralDB.projects || [];
 let assignedTasks = centralDB.assignedTasks || [];
 let dailyMails = centralDB.dailyMails || [];
 let weeklyMails = centralDB.weeklyMails || [];
 let monthlyMails = centralDB.monthlyMails || [];
-let meetings = centralDB.meetings || [];
 rememberServerIds();
-lastRenderedSnapshot = JSON.stringify({ p: projects, a: assignedTasks, d: dailyMails, w: weeklyMails, m: monthlyMails, mt: meetings });
 let currentUserSession = localStorage.getItem('mis_logged_user_id');
 let currentUserInfo = null;
 
-// ===================== مؤشر حالة الاتصال + التنبيه الفوري (Toast + Beep) =====================
-function updateConnectionDot(isOnline) {
-  const dot = document.getElementById('serverConnDot');
-  if (!dot) return;
-  if (isOnline) {
-    dot.classList.remove('offline');
-    dot.title = 'Connected to Server (' + SERVER_BASE_URL + ')';
-  } else {
-    dot.classList.add('offline');
-    dot.title = 'Offline - Server Unreachable (Viewing Local Cache)';
-  }
-}
-
-function playNotificationTone() {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    gain.gain.setValueAtTime(0.05, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.25);
-  } catch (e) {}
-}
-
-function showToastNotification(message) {
-  const container = document.getElementById('toastNotifContainer');
-  if (!container) return;
-  const item = document.createElement('div');
-  item.className = 'toast-notif-item';
-  item.innerHTML = `<span>🔔</span><span>${escapeHTML(message)}</span>`;
-  item.onclick = function() {
-    switchTab('assigned-tasks-board');
-    if (item.parentNode) item.parentNode.removeChild(item);
-  };
-  container.appendChild(item);
-  playNotificationTone();
-  setTimeout(function() {
-    if (item.parentNode) item.parentNode.removeChild(item);
-  }, 6000);
-}
-
-// ترتيب ذكي للكروت: المتأخر (Overdue) أولاً، ثم حسب الأولوية (High -> Medium -> Low)، ثم الأقرب في الديدلاين
-function sortTasksSmart(taskList) {
-  const priWeight = { High: 3, Medium: 2, Low: 1 };
-  const nowTs = Date.now();
-  return taskList.slice().sort(function(a, b) {
-    const aTime = a.deadline ? new Date(a.deadline).getTime() : Infinity;
-    const bTime = b.deadline ? new Date(b.deadline).getTime() : Infinity;
-    const aOver = (a.status !== 'Done' && aTime < nowTs) ? 1 : 0;
-    const bOver = (b.status !== 'Done' && bTime < nowTs) ? 1 : 0;
-    if (aOver !== bOver) return bOver - aOver;
-    const aPri = priWeight[a.priority] || 2;
-    const bPri = priWeight[b.priority] || 2;
-    if (aPri !== bPri) return bPri - aPri;
-    const aValid = isNaN(aTime) ? Infinity : aTime;
-    const bValid = isNaN(bTime) ? Infinity : bTime;
-    if (aValid !== bValid) return aValid - bValid;
-    return 0;
-  });
-}
-
-// مؤقت الـ SLA التنازلي الذكي للديدلاين
-function getSlaCountdownBadge(deadlineStr, status) {
-  if (status === 'Done') {
-    return `<span style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 700;">✔ Done</span>`;
-  }
-  if (!deadlineStr) return '';
-  const d = new Date(deadlineStr);
-  if (isNaN(d.getTime())) return '';
-
-  const now = new Date();
-  const diffMs = d.getTime() - now.getTime();
-  const diffHours = diffMs / (1000 * 60 * 60);
-
-  if (diffMs < 0) {
-    const overdueHours = Math.abs(diffHours);
-    const timeText = overdueHours < 24 ? `${Math.ceil(overdueHours)}h overdue` : `${Math.ceil(overdueHours / 24)}d overdue`;
-    return `<span style="font-size: 10px; background: #dc2626; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 700;">🚨 ${timeText}</span>`;
-  }
-
-  if (diffHours <= 4) {
-    const hrs = Math.ceil(diffHours);
-    return `<span style="font-size: 10px; background: #ea580c; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 700;">⏳ ${hrs}h left</span>`;
-  }
-
-  if (diffHours <= 24) {
-    const hrs = Math.ceil(diffHours);
-    return `<span style="font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: 700;">⚡ Due today (${hrs}h)</span>`;
-  }
-
-  if (diffHours <= 48) {
-    return `<span style="font-size: 10px; background: var(--desc-box-bg); color: var(--text-muted); border: 1px solid var(--border-color); padding: 2px 6px; border-radius: 4px; font-weight: 700;">⏳ Due tomorrow</span>`;
-  }
-
-  const days = Math.floor(diffHours / 24);
-  return `<span style="font-size: 10px; background: var(--desc-box-bg); color: var(--text-muted); border: 1px solid var(--border-color); padding: 2px 6px; border-radius: 4px; font-weight: 600;">📅 In ${days}d</span>`;
-}
-
+// تحويل تنسيق التاريخ للصيغة المطلوبة: DD/MM/YYYY hh:mm AM/PM
 // ===================== Roles / team scope helpers =====================
 function normalizeId(v) { return (v == null ? '' : String(v)).trim().toLowerCase(); }
 function isUpperAdminInfo(info) { return !!info && info.role === 'UpperAdmin'; }
 function isPrivilegedInfo(info) { return !!info && (info.role === 'Admin' || info.role === 'UpperAdmin'); }
+// null = كل اليوزرز | array = اليوزرز المسموح للأدمن يشوفهم
 function getManagedUserIds(info) {
   if (!info || info.role === 'UpperAdmin') return null;
   const list = Array.isArray(info.managedUsers) ? info.managedUsers : [];
@@ -1159,10 +571,6 @@ function getManagedUserIds(info) {
 }
 function getAssignableMembers() {
   if (!isPrivilegedInfo(currentUserInfo)) return teamMembers;
-  if (currentUserInfo.role === 'Admin') {
-    const adminScope = getManagedUserIds(currentUserInfo);
-    return teamMembers.filter(m => m.role === 'User' && (!adminScope || adminScope.includes(normalizeId(m.userId))));
-  }
   const scope = getManagedUserIds(currentUserInfo);
   if (!scope) return teamMembers;
   return teamMembers.filter(m => scope.includes(normalizeId(m.userId)));
@@ -1182,25 +590,7 @@ function canSeeAssignedTask(task) {
   }
   return normalizeId(task.userId) === normalizeId(currentUserInfo.userId);
 }
-
-// صلاحيات رؤية الاجتماعات (Meeting Minutes)
-function canSeeMeeting(m) {
-  if (!currentUserInfo) return false;
-  if (isUpperAdminInfo(currentUserInfo)) return true;
-  const myId = normalizeId(currentUserSession);
-  if (normalizeId(m.createdBy) === myId) return true;
-  if (Array.isArray(m.attendees) && m.attendees.map(normalizeId).includes(myId)) return true;
-  if (currentUserInfo.role === 'Admin') {
-    const scope = getManagedUserIds(currentUserInfo);
-    if (!scope) return true;
-    if (scope.includes(normalizeId(m.createdBy))) return true;
-    if (Array.isArray(m.attendees) && m.attendees.some(att => scope.includes(normalizeId(att)))) return true;
-  }
-  return false;
-}
-
 function validateTeamConfig() {
-  teamWarnings.forEach(w => console.warn('[users.csv]', w));
   const ids = new Set();
   teamMembers.forEach(m => {
     const id = normalizeId(m.userId);
@@ -1226,8 +616,7 @@ function getWindowsUserFromURL() {
 function rememberServerIds() {
   lastKnownIds = {
     projects: projects.map(t => t.id), assignedTasks: assignedTasks.map(t => t.id),
-    dailyMails: dailyMails.map(t => t.id), weeklyMails: weeklyMails.map(t => t.id), monthlyMails: monthlyMails.map(t => t.id),
-    meetings: meetings.map(m => m.id)
+    dailyMails: dailyMails.map(t => t.id), weeklyMails: weeklyMails.map(t => t.id), monthlyMails: monthlyMails.map(t => t.id)
   };
 }
 function commentKey(c) { return c.id || (c.userId + '|' + c.date + '|' + c.text); }
@@ -1258,7 +647,7 @@ function mergeCollection(localArr, serverArr, knownIds) {
   return result;
 }
 function notifyServerStatus(ok) {
-  updateConnectionDot(ok);
+  if (DEMO_MODE) return;
   if (ok) { serverWarningShown = false; return; }
   if (!serverWarningShown) {
     serverWarningShown = true;
@@ -1269,65 +658,12 @@ function notifyServerStatus(ok) {
 // ===================== Local cache (read-only fallback when the server is down) =====================
 function syncStorage() {
   try {
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), projects: projects, assignedTasks: assignedTasks, dailyMails: dailyMails, weeklyMails: weeklyMails, monthlyMails: monthlyMails, meetings: meetings }));
-    lastRenderedSnapshot = JSON.stringify({ p: projects, a: assignedTasks, d: dailyMails, w: weeklyMails, m: monthlyMails, mt: meetings });
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), projects: projects, assignedTasks: assignedTasks, dailyMails: dailyMails, weeklyMails: weeklyMails, monthlyMails: monthlyMails }));
+    ['team', 'projects', 'assigned', 'daily', 'weekly', 'monthly'].forEach(k => localStorage.removeItem('mis_' + k + '_v14'));   // تنظيف المفاتيح القديمة
   } catch (e) {}
 }
-function getInitialDemoData() {
-  const now = Date.now();
-  const pad = n => String(n).padStart(2, '0');
-  const dObj = new Date(now + 24 * 3600 * 1000);
-  const tomorrowStr = `${dObj.getFullYear()}-${pad(dObj.getMonth()+1)}-${pad(dObj.getDate())}T17:00`;
-  const dOverdue = new Date(now - 48 * 3600 * 1000);
-  const overdueStr = `${dOverdue.getFullYear()}-${pad(dOverdue.getMonth()+1)}-${pad(dOverdue.getDate())}T16:00`;
-
-  return {
-    projects: [
-      { id: "demo-p-1", title: "Automate SQL Reporting Pipeline", scope: "Migrate daily ETL queries from legacy server to cloud database", priority: "High", status: "In Progress", deadline: tomorrowStr, createdBy: "karim_admin", creationDate: new Date(now).toISOString() },
-      { id: "demo-p-2", title: "PowerBI Executive Dashboard Refresh", scope: "Update quarterly KPIs and operational dashboards", priority: "Medium", status: "To Do", deadline: tomorrowStr, createdBy: "karim_admin", creationDate: new Date(now).toISOString() }
-    ],
-    assignedTasks: [
-      { id: "demo-at-1", title: "Quarterly Business Review (QBR) Data", scope: "Validate monthly SLA figures and format client slides", assignee: "Alex Miller", userId: "alex_m", status: "In Progress", deadline: tomorrowStr, priority: "High", labels: "Reporting", comments: [], createdBy: "sarah_ops", creationDate: new Date(now).toISOString(), reminderSent: false, updatedAt: now },
-      { id: "demo-at-2", title: "FCR Incident Investigation", scope: "Analyze root causes for ticket escalations in shift 2", assignee: "John Davis", userId: "john_d", status: "To Do", deadline: overdueStr, priority: "High", labels: "Incident", comments: [], createdBy: "sarah_ops", creationDate: new Date(now).toISOString(), reminderSent: false, updatedAt: now },
-      { id: "demo-at-3", title: "Routine Audit Checklist", scope: "Review mailbox dispatch logs and verify queue clearing", assignee: "Emma Smith", userId: "emma_s", status: "Done", deadline: tomorrowStr, priority: "Low", labels: "Routine Task", comments: [], createdBy: "sarah_ops", creationDate: new Date(now).toISOString(), reminderSent: false, updatedAt: now }
-    ],
-    dailyMails: [
-      { id: "d-demo-1", name: "Send Morning FCR Mail", priority: "High", completed: false, userId: "alex_m", isCustom: false },
-      { id: "d-demo-2", name: "Check All Priority Mailboxes", priority: "High", completed: true, completedAt: now, userId: "alex_m", isCustom: false },
-      { id: "d-demo-3", name: "Send Morning FCR Mail", priority: "High", completed: false, userId: "karim_admin", isCustom: false }
-    ],
-    weeklyMails: [
-      { id: "w-demo-1", name: "Weekly Ops Performance Summary", day: "Monday", priority: "High", completed: false, userId: "alex_m", isCustom: false }
-    ],
-    monthlyMails: [
-      { id: "m-demo-1", name: "QBR SLA Verification", dayOfMonth: 15, priority: "High", completed: false, userId: "alex_m", isCustom: false }
-    ],
-    meetings: [
-      {
-        id: "demo-m-1",
-        title: "Weekly Operations Sync & Action Review",
-        date: new Date(now).toISOString().slice(0, 16),
-        agenda: "Review weekly KPIs, resolve blockers, and assign action items",
-        attendees: ["karim_admin", "sarah_ops", "alex_m", "john_d"],
-        notes: "• Reviewed weekly SLA figures across all channels.\n• FCR improved by 4.2% following the new queue handling guidelines.\n• Escalation path for urgent tickets was finalized.\n• Alex to finalize QBR numbers by tomorrow EOD.",
-        createdBy: "karim_admin",
-        createdAt: now,
-        updatedAt: now
-      }
-    ]
-  };
-}
-
 function loadLocalCache() {
-  try {
-    const raw = localStorage.getItem(LOCAL_CACHE_KEY);
-    if (raw) return JSON.parse(raw);
-    if (DEMO_MODE) return getInitialDemoData();
-    return null;
-  } catch (e) {
-    if (DEMO_MODE) return getInitialDemoData();
-    return null;
-  }
+  try { const raw = localStorage.getItem(LOCAL_CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
 }
 
 // ===================== Filters (search / deadline) =====================
@@ -1354,13 +690,14 @@ function taskMatchesDeadlineFilter(task, mode) {
 }
 function readFilterValue(id, fallback) { const el = document.getElementById(id); return el ? el.value : fallback; }
 
-// ===================== Routines: period-based completion =====================
+// ===================== Routines: period-based completion (no reset job needed) =====================
 const WEEKDAY_INDEX = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5, Sunday: 6 };
 function startOfWeekMonday(d) {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
   return x.getTime();
 }
+// المهمة تعتبر "تمت" بس لو اتعلّمت في نفس اليوم/الأسبوع/الشهر الحالي، وبعدها بترجع Pending تلقائياً
 function isRoutineDoneNow(item, type) {
   if (!item.completed || !item.completedAt) return false;
   const c = new Date(item.completedAt), n = new Date();
@@ -1370,7 +707,7 @@ function isRoutineDoneNow(item, type) {
 }
 function getRoutineDayOfMonth(item) {
   if (item.dayOfMonth) return parseInt(item.dayOfMonth, 10);
-  if (item.date && /^\d{4}-\d{2}-\d{2}$/.test(item.date)) return parseInt(item.date.slice(8, 10), 10);
+  if (item.date && /^\d{4}-\d{2}-\d{2}$/.test(item.date)) return parseInt(item.date.slice(8, 10), 10);   // بيانات قديمة
   return null;
 }
 function isRoutineOverdue(item, type) {
@@ -1389,7 +726,7 @@ function formatDateTimeOrBlank(raw) {
   return out === 'No Deadline' ? '' : out;
 }
 
-// ===================== Unread comments (🔔) =====================
+// ===================== Unread comments (🔔) - محفوظ لكل يوزر في متصفحه =====================
 function seenCommentsKey() { return 'mis_seen_comments_' + normalizeId(currentUserSession); }
 function getSeenMap() { try { return JSON.parse(localStorage.getItem(seenCommentsKey()) || '{}'); } catch (e) { return {}; } }
 function getUnreadCommentCount(task, seenMap) {
@@ -1401,101 +738,43 @@ function markCommentsSeen(task) {
   seen[task.id] = Math.max(0, ...(task.comments || []).map(c => c.ts || 0));
   try { localStorage.setItem(seenCommentsKey(), JSON.stringify(seen)); } catch (e) {}
 }
-function updateNotificationBell(total, totalNew, totalUnread) {
+function updateNotificationBell(total) {
   const bell = document.getElementById('btnNotifications');
   if (!bell) return;
   document.getElementById('notifCount').innerText = total;
   bell.style.display = total > 0 ? '' : 'none';
   bell.style.borderColor = 'var(--accent-primary)';
   bell.style.color = 'var(--accent-primary)';
-  if (previousNotifTotal !== null && total > previousNotifTotal) {
-    const diff = total - previousNotifTotal;
-    const msg = (totalNew > 0 && totalUnread === 0)
-      ? `You have ${totalNew} new assigned task(s)!`
-      : `You have ${diff} new notification(s) on your tasks!`;
-    showToastNotification(msg);
-  }
-  previousNotifTotal = total;
 }
 
-// ===================== Team file (users.csv) =====================
-function usingTeamFile() { return TEAM_FROM_FILE && !DEMO_MODE; }
-function fetchTeamFromServer() {
+// ===================== Demo data (بيظهر أول مرة بس) =====================
+function buildDemoData() {
+  const now = Date.now(), H = 3600000, D = 24 * H;
+  const local = (ms) => new Date(ms - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const cm = (id, userId, text, ago) => ({ id: 'c-demo-' + id, userId: userId, text: text, date: new Date(now - ago).toLocaleString(), ts: now - ago });
+  const mk = (n, title, scope, userId, assignee, createdBy, status, priority, labels, deadlineMs, comments) => ({ id: 'at-demo-' + n, title: title, scope: scope, assignee: assignee, userId: userId, status: status, deadline: local(deadlineMs), priority: priority, labels: labels, comments: comments || [], createdBy: createdBy, creationDate: new Date(now - 2 * D).toISOString(), reminderSent: false, updatedAt: now - D });
+  return {
+    assignedTasks: [
+      mk(1, 'Prepare weekly KPI report', 'Collect the numbers from all queues and send the summary.', 'alex', 'Alex Morgan', 'demo_admin', 'In Progress', 'High', 'Reporting', now + 1 * D, [cm(1, 'alex', 'Do we need the abandoned-calls chart too?', 5 * H), cm(2, 'demo_admin', 'Yes please, include last 4 weeks.', 4 * H)]),
+      mk(2, 'Fix dashboard sync issue', 'Users see stale data after 10 minutes.', 'sara', 'Sara Khaled', 'demo_admin', 'To Do', 'High', 'Bug', now + 3 * D),
+      mk(3, 'Update shift schedule', 'Publish next month schedule.', 'omar', 'Omar Nabil', 'demo_admin', 'Done', 'Low', 'Routine Task', now - 1 * D),
+      mk(4, 'Customer escalation follow-up', 'Call back the customer and confirm resolution.', 'alex', 'Alex Morgan', 'demo_admin', 'To Do', 'Medium', 'Incident', now - 6 * H),
+      mk(5, 'QBR data request', 'Prepare the quarterly numbers for the review.', 'lina', 'Lina Hassan', 'demo_admin2', 'In Progress', 'Medium', 'Request', now + 5 * D),
+      mk(6, 'Audit sample of 20 calls', 'Score and share the findings.', 'youssef', 'Youssef Adel', 'demo_admin2', 'To Do', 'Low', 'Reporting', now + 7 * D)
+    ],
+    projects: [
+      { id: 't-demo-1', title: 'Automate daily mail reports', scope: 'Idea backlog for the team.', priority: 'Medium', status: 'To Do', deadline: local(now + 14 * D), createdBy: 'demo_admin', creationDate: new Date(now - 3 * D).toISOString(), updatedAt: now - D },
+      { id: 't-demo-2', title: 'Review team training plan', scope: '', priority: 'Low', status: 'In Progress', deadline: local(now + 10 * D), createdBy: 'demo_admin', creationDate: new Date(now - 4 * D).toISOString(), updatedAt: now - D }
+    ]
+  };
+}
+function resetDemoData() {
   try {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", SERVER_BASE_URL + "team?t=" + Date.now(), false);
-    xhr.send(null);
-    if (xhr.status === 200) {
-      const data = JSON.parse(xhr.responseText);
-      if (data && Array.isArray(data.members)) return data;
-      return { outdated: true };
-    }
-  } catch (err) {}
-  return null;
-}
-function loadTeamMembers() {
-  if (!usingTeamFile()) return DEFAULT_TEAM_MEMBERS;
-  const data = fetchTeamFromServer();
-  if (data && data.outdated) { teamServerOutdated = true; return []; }
-  if (data) {
-    teamWarnings = data.warnings || [];
-    try { localStorage.setItem(TEAM_CACHE_KEY, JSON.stringify(data.members)); } catch (e) {}
-    return data.members;
-  }
-  try { const raw = localStorage.getItem(TEAM_CACHE_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
-  return [];
-}
-function fetchTeamFromServerAsync(callback) {
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", SERVER_BASE_URL + "team?t=" + Date.now(), true);
-    xhr.timeout = 8000;
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (data && Array.isArray(data.members)) { callback(data); return; }
-          callback({ outdated: true }); return;
-        } catch (e) {}
-      }
-      callback(null);
-    };
-    xhr.onerror = function() { callback(null); };
-    xhr.ontimeout = function() { callback(null); };
-    xhr.send(null);
-  } catch (err) { callback(null); }
-}
-function applyRefreshedTeamData(data) {
-  if (!data || data.outdated) return;
-  teamWarnings = data.warnings || [];
-  if (data.members.length === 0) return;
-  if (JSON.stringify(data.members) === JSON.stringify(teamMembers)) return;
-  teamMembers = data.members;
-  try { localStorage.setItem(TEAM_CACHE_KEY, JSON.stringify(teamMembers)); } catch (e) {}
-  if (currentUserSession) {
-    const me = teamMembers.find(m => normalizeId(m.userId) === normalizeId(currentUserSession));
-    if (!me) { localStorage.removeItem('mis_logged_user_id'); location.reload(); return; }
-    currentUserInfo = me;
-    applyRoleSecurityLocks();
-    initializeDashboardProfile();
-  }
-  buildDynamicTeamUI();
-  renderKanban(); renderAssignedKanban(); renderRoutines(); renderMeetings();
-}
-function refreshTeamFromServerAsync() {
-  if (!usingTeamFile()) return;
-  fetchTeamFromServerAsync(applyRefreshedTeamData);
-}
-function verifyPasswordOnServer(userId, password) {
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", SERVER_BASE_URL + "login", false);
-    xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-    xhr.send(JSON.stringify({ userId: userId, password: password }));
-    if (xhr.status === 200) return 'ok';
-    if (xhr.status === 401) return 'denied';
-  } catch (err) {}
-  return 'unreachable';
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('mis_') === 0) keys.push(k); }
+    keys.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  location.reload();
 }
 
 function formatCustomDateTime(rawDateTimeStr) {
@@ -1518,10 +797,7 @@ function formatCustomDateTime(rawDateTimeStr) {
 }
 
 function changeSystemTheme(themeName) {
-  const body = document.body;
-  body.className = (themeName === 'default' ? '' : themeName) + ' theme-switching';
-  void body.offsetHeight;
-  setTimeout(function() { body.classList.remove('theme-switching'); }, 80);
+  document.body.className = themeName === 'default' ? '' : themeName;
   if (currentUserSession) localStorage.setItem('mis_theme_' + currentUserSession, themeName);
 }
 
@@ -1539,6 +815,7 @@ function initializeUserRoutines(userId) {
   if (!hasMonthly && typeof DEFAULT_MONTHLY_TASKS !== 'undefined') {
     DEFAULT_MONTHLY_TASKS.forEach((task, index) => { monthlyMails.push({ id: 'm-' + userId + '-' + index + '-' + Date.now(), name: task.name, dayOfMonth: task.dayOfMonth, priority: 'High', completed: false, userId: userId, isCustom: false }); changed = true; });
   }
+  // لازم الروتينات الافتراضية تتحفظ على السيرفر فوراً وإلا أول تحديث تلقائي هيمسحها
   if (changed) { syncAndUpgradeSystemFile(); }
 }
 
@@ -1570,24 +847,26 @@ function checkAuthenticationState() {
   loginPrefillUser = '';
   loginPrefillError = '';
 
+  // الدخول التلقائي بيوزر Citrix اللي جاي من الـ bat في رابط الصفحة (?user=...)
   if (AUTO_LOGIN_FROM_WINDOWS_USER && !autoLoginSuppressed) {
     const winUser = getWindowsUserFromURL();
     if (winUser) {
       const autoMember = teamMembers.find(m => normalizeId(m.userId) === winUser);
-      if (autoMember) {
-        if (isPrivilegedInfo(autoMember) && !ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD) {
-          currentUserSession = null;
-          loginPrefillUser = autoMember.userId;
-        } else {
-          currentUserSession = normalizeId(autoMember.userId);
-          localStorage.setItem('mis_logged_user_id', currentUserSession);
-        }
+      if (!autoMember) {
+        currentUserSession = null;
+        loginPrefillError = 'Windows user "' + winUser + '" is not registered in the system. Please contact your administrator.';
+      } else if (isPrivilegedInfo(autoMember) && !ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD) {
+        currentUserSession = null;
+        loginPrefillUser = autoMember.userId;
+      } else {
+        currentUserSession = normalizeId(autoMember.userId);
+        localStorage.setItem('mis_logged_user_id', currentUserSession);
       }
-      // لو المستخدم مش مسجل كـ Citrix (مثلاً فاتح على ويندوز عادي)، مابنطلعش إيرور وبنسيبه يسجل دخول يدوي عادي
     }
   }
 
-  if (!ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD && !sessionStorage.getItem('mis_auth_' + currentUserSession) && isPrivilegedInfo(teamMembers.find(m => normalizeId(m.userId) === normalizeId(currentUserSession)))) currentUserSession = null;
+  // لو الأدمن لازم يدخل باسورد: ماترجّعش جلسة أدمن محفوظة في المتصفح
+  if (!ADMIN_AUTO_LOGIN_WITHOUT_PASSWORD && isPrivilegedInfo(teamMembers.find(m => normalizeId(m.userId) === normalizeId(currentUserSession)))) currentUserSession = null;
   if (currentUserSession && currentUserSession.trim() !== "") {
     currentUserInfo = teamMembers.find(m => normalizeId(m.userId) === normalizeId(currentUserSession));
     if (currentUserInfo) {
@@ -1605,11 +884,6 @@ function checkAuthenticationState() {
     document.getElementById('loginUsernameInput').value = loginPrefillUser;
     handleLoginUsernameChange();
   }
-  if (usingTeamFile() && teamMembers.length === 0 && !loginPrefillError) {
-    loginPrefillError = teamServerOutdated
-      ? 'The running server is an OLD version. Close powershell.exe in Task Manager, then run the launcher (.bat) again.'
-      : 'No users found. Make sure the server is running and users.csv contains at least one user.';
-  }
   if (loginPrefillError) {
     const errBox = document.getElementById('loginErrorMsg');
     errBox.innerText = loginPrefillError;
@@ -1625,27 +899,15 @@ function submitSystemLogin() {
   if (userInput === "") { errorMsg.innerText = "Please enter your username."; errorMsg.style.display = "block"; return; }
   const matchedMember = teamMembers.find(m => m.userId.trim().toLowerCase() === userInput);
   if (matchedMember) {
-    if (matchedMember.role === "Admin" || matchedMember.role === "UpperAdmin") {
-      let passwordOk;
-      if (usingTeamFile()) {
-        const verdict = verifyPasswordOnServer(matchedMember.userId, passwordInput);
-        if (verdict === 'unreachable') { errorMsg.innerText = "Cannot reach the server. Please run the launcher (.bat) again."; errorMsg.style.display = "block"; return; }
-        passwordOk = (verdict === 'ok');
-      } else {
-        passwordOk = (passwordInput === matchedMember.password);
-      }
-      if (!passwordOk) {
-        errorMsg.innerText = "Access Denied: Incorrect Password.";
-        errorMsg.style.display = "block";
-        return;
-      }
+    if ((matchedMember.role === "Admin" || matchedMember.role === "UpperAdmin") && passwordInput !== matchedMember.password) {
+      errorMsg.innerText = "Access Denied: Incorrect Password.";
+      errorMsg.style.display = "block";
+      return;
     }
     errorMsg.style.display = "none";
     localStorage.setItem('mis_logged_user_id', userInput);
-    sessionStorage.setItem('mis_auth_' + userInput, 'true');
     currentUserSession = userInput;
     currentUserInfo = matchedMember;
-    previousNotifTotal = null;
     document.getElementById('loginScreenOverlay').style.display = 'none';
     document.getElementById('mainDashboardWrapper').style.display = 'block';
     initializeUserRoutines(currentUserSession);
@@ -1654,7 +916,6 @@ function submitSystemLogin() {
     renderKanban();
     renderAssignedKanban();
     renderRoutines();
-    renderMeetings();
     initializeDashboardProfile();
     if (matchedMember.role === 'User') { switchTab('assigned-tasks-board'); }
   } else {
@@ -1678,11 +939,9 @@ function initializeDashboardProfile() {
 function systemLogout() {
   if (confirm("Are you sure you want to log out?")) {
     localStorage.removeItem('mis_logged_user_id');
-    sessionStorage.clear();
     autoLoginSuppressed = true;
     currentUserSession = null;
     currentUserInfo = null;
-    previousNotifTotal = null;
     document.getElementById('loginUsernameInput').value = "";
     document.getElementById('loginPasswordInput').value = "";
     document.getElementById('adminPasswordFormGroup').style.display = "none";
@@ -1692,16 +951,12 @@ function systemLogout() {
 }
 
 function switchTab(tabId) {
-  const assignedPanel = document.getElementById('assigned-tasks-board');
-  const leavingAssigned = !!assignedPanel && assignedPanel.classList.contains('active') && tabId !== 'assigned-tasks-board';
   document.querySelectorAll('.tab-content').forEach(el => { el.style.display = 'none'; el.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('active'); });
   const targetTab = document.getElementById(tabId);
   if (targetTab) { targetTab.style.display = 'block'; targetTab.classList.add('active'); }
-  const correspondingBtn = document.querySelector(`#mainSystemNavTabs button[onclick*="${tabId}"]`);
+  const correspondingBtn = document.querySelector(`button[onclick*="${tabId}"]`);
   if (correspondingBtn) correspondingBtn.classList.add('active');
-  if (leavingAssigned) { markAllNewTasksSeen(); renderAssignedKanban(); }
-  if (tabId === 'meetings-tracker') { renderMeetings(); }
 }
 
 function applyRoleSecurityLocks() {
@@ -1720,7 +975,7 @@ function applyRoleSecurityLocks() {
     }
     if (filterMemberLabel) filterMemberLabel.innerText = "Review Tasks:";
   } else {
-    privilegedElements.forEach(el => el.style.display = '');
+    privilegedElements.forEach(el => el.style.display = '');   // رجّع العنصر لتنسيقه الأصلي (مش inline-block)
     periodicTabs.forEach(tab => { tab.style.display = 'inline-block'; });
     if (filterMemberLabel) filterMemberLabel.innerText = "Filter Member:";
     buildDynamicTeamUI();
@@ -1729,56 +984,28 @@ function applyRoleSecurityLocks() {
 
 function startCentralAutoFetchLoop() {
   setInterval(function() {
-    if (dragInProgress && (Date.now() - dragStartedAt) < 30000) return;
-    loadCentralDatabaseFromServerAsync(function(freshDB, newRev) {
-      if (!freshDB) return;
-      const incomingSnapshot = JSON.stringify({
-        p: freshDB.projects || [],
-        a: freshDB.assignedTasks || [],
-        d: freshDB.dailyMails || dailyMails,
-        w: freshDB.weeklyMails || weeklyMails,
-        m: freshDB.monthlyMails || monthlyMails,
-        mt: freshDB.meetings || meetings
-      });
-      const dataChanged = (newRev !== null && newRev !== serverRev) || (incomingSnapshot !== lastRenderedSnapshot);
-      serverRev = newRev;
-      if (dataChanged) {
-        projects = freshDB.projects || [];
-        assignedTasks = freshDB.assignedTasks || [];
-        dailyMails = freshDB.dailyMails || dailyMails;
-        weeklyMails = freshDB.weeklyMails || weeklyMails;
-        monthlyMails = freshDB.monthlyMails || monthlyMails;
-        meetings = freshDB.meetings || meetings;
-        rememberServerIds();
-        syncStorage();
-        renderKanban();
-        renderAssignedKanban();
-        renderRoutines();
-        renderMeetings();
-        refreshOpenCommentsModal();
-      }
-      refreshTeamFromServerAsync();
-      processRecurringTasks();
-      sendPendingRecurringMails();
-      checkUpcomingDeadlinesAndAlert();
-    });
+    if (dragInProgress && (Date.now() - dragStartedAt) < 30000) return;   // ماتقطعش السحب بتحديث تلقائي
+    let freshDB = loadCentralDatabaseFromServer();
+    if (!freshDB) return;
+    projects = freshDB.projects || [];
+    assignedTasks = freshDB.assignedTasks || [];
+    dailyMails = freshDB.dailyMails || dailyMails;
+    weeklyMails = freshDB.weeklyMails || weeklyMails;
+    monthlyMails = freshDB.monthlyMails || monthlyMails;
+    rememberServerIds();
+    syncStorage();
+    renderKanban();
+    renderAssignedKanban();
+    renderRoutines();
+    refreshOpenCommentsModal();
+    checkUpcomingDeadlinesAndAlert();
   }, 15000);
-
-  if (VIEW_REFRESH_MINUTES > 0) {
-    setInterval(function() {
-      if (!currentUserInfo) return;
-      if (dragInProgress && (Date.now() - dragStartedAt) < 30000) return;
-      renderKanban();
-      renderAssignedKanban();
-      renderRoutines();
-      renderMeetings();
-    }, VIEW_REFRESH_MINUTES * 60 * 1000);
-  }
 }
 
 function checkUpcomingDeadlinesAndAlert() {
   if (!isPrivilegedInfo(currentUserInfo)) return;
   const now = new Date();
+  // التنبيه للأدمن اللي أسند التاسك بس، ومرة واحدة لكل تاسك
   const dueTask = assignedTasks.find(task => {
     if (task.status === 'Done' || !task.deadline || task.reminderSent) return false;
     if (normalizeId(task.createdBy) !== normalizeId(currentUserSession)) return false;
@@ -1786,7 +1013,7 @@ function checkUpcomingDeadlinesAndAlert() {
     return diffHours > 0 && diffHours <= REMINDER_HOURS_BEFORE_DEADLINE;
   });
   if (!dueTask) return;
-  dueTask.reminderSent = true;
+  dueTask.reminderSent = true;           // اتسجل على السيرفر قبل ما نسأل، عشان التحديث التلقائي ما يكررش التنبيه
   dueTask.updatedAt = Date.now();
   syncAndUpgradeSystemFile();
   if (confirm(`Task "${dueTask.title}" assigned to ${dueTask.assignee} is due in less than ${REMINDER_HOURS_BEFORE_DEADLINE} hours! Send reminder email now?`)) {
@@ -1807,13 +1034,13 @@ function handleDragEnd(e) {
   document.querySelectorAll('.kanban-column.drag-over').forEach(c => c.classList.remove('drag-over'));
 }
 function handleDragOver(e, boardType) {
-  if (!draggedItem || draggedItem.board !== boardType) return;
+  if (!draggedItem || draggedItem.board !== boardType) return;   // مش مسموح الإفلات في بورد تاني
   e.preventDefault();
   try { e.dataTransfer.dropEffect = 'move'; } catch (err) {}
   e.currentTarget.classList.add('drag-over');
 }
 function handleDragLeave(e) {
-  if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;
+  if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;   // لسه جوا نفس العمود
   e.currentTarget.classList.remove('drag-over');
 }
 function handleDrop(e, boardType, targetStatus) {
@@ -1830,87 +1057,9 @@ function handleDrop(e, boardType, targetStatus) {
   if (!task || task.status === targetStatus) return;
   const allowed = boardType === 'projects' ? canSeeProjectTask(task) : canSeeAssignedTask(task);
   if (!allowed) return;
-  setTaskStatus(task, targetStatus);
+  task.status = targetStatus;
   task.updatedAt = Date.now();
   syncAndUpgradeSystemFile();
-}
-
-// ===================== Summary strip =====================
-function updateSummaryStrip(board) {
-  const el = document.getElementById(board === 'projects' ? 'projectSummaryStrip' : 'assignedSummaryStrip');
-  if (!el) return;
-  const list = (board === 'projects' ? projects : assignedTasks).filter(t => board === 'projects' ? canSeeProjectTask(t) : canSeeAssignedTask(t));
-  const now = new Date();
-  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startTomorrow = new Date(startToday.getTime() + 86400000);
-  let todo = 0, prog = 0, done = 0, overdue = 0, dueToday = 0;
-  list.forEach(t => {
-    if (t.status === 'To Do') todo++; else if (t.status === 'In Progress') prog++; else done++;
-    if (t.status !== 'Done' && t.deadline) {
-      const d = new Date(t.deadline);
-      if (!isNaN(d.getTime())) {
-        if (d < now) overdue++;
-        if (d >= startToday && d < startTomorrow) dueToday++;
-      }
-    }
-  });
-  const filterEl = document.getElementById(board === 'projects' ? 'projectDeadlineFilter' : 'assignedDeadlineFilter');
-  const mode = filterEl ? filterEl.value : 'all';
-  const card = (label, value, tone, filterMode, statusName) => {
-    const clickable = (filterMode || statusName) ? ' clickable' : '';
-    const active = (filterMode && filterMode !== 'all' && mode === filterMode) ? ' active' : '';
-    const click = filterMode ? ` onclick="applySummaryFilter('${board}', '${filterMode}')"` : (statusName ? ` onclick="scrollToBoardColumn('${board}', '${statusName}')"` : '');
-    return `<div class="summary-card tone-${tone}${clickable}${active}"${click}><span class="summary-value">${value}</span><span class="summary-label">${label}</span></div>`;
-  };
-  el.innerHTML = card('Total', list.length, 'info', 'all') + card('To Do', todo, 'info', '', 'To Do') + card('In Progress', prog, 'warn', '', 'In Progress') + card('Done', done, 'ok', '', 'Done') + card('Overdue', overdue, 'danger', 'overdue') + card('Due Today', dueToday, 'warn', 'today');
-}
-function scrollToBoardColumn(board, status) {
-  const panel = document.getElementById(board === 'projects' ? 'project-backlog' : 'assigned-tasks-board');
-  const col = panel ? panel.querySelector('.kanban-column[data-status="' + status + '"]') : null;
-  if (!col) return;
-  if (col.scrollIntoView) col.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  col.classList.add('flash');
-  setTimeout(function() { col.classList.remove('flash'); }, 1200);
-}
-function applySummaryFilter(board, mode) {
-  const sel = document.getElementById(board === 'projects' ? 'projectDeadlineFilter' : 'assignedDeadlineFilter');
-  if (!sel) return;
-  sel.value = (mode !== 'all' && sel.value === mode) ? 'all' : mode;
-  if (board === 'projects') renderKanban(); else renderAssignedKanban();
-}
-
-// ===================== "New" badge for tasks =====================
-function seenTasksKey() { return 'mis_seen_tasks_' + normalizeId(currentUserSession); }
-function newTaskKey(task) { return task.id + (task.recurCycle ? '@' + task.recurCycle : ''); }
-function isTaskForMe(task) {
-  return normalizeId(task.userId) === normalizeId(currentUserSession) && normalizeId(task.createdBy) !== normalizeId(currentUserSession);
-}
-function getSeenTasks() {
-  if (!currentUserSession) return {};
-  let map = null;
-  try { const raw = localStorage.getItem(seenTasksKey()); if (raw) map = JSON.parse(raw); } catch (e) {}
-  if (!map || typeof map !== 'object') {
-    if (!assignedTasks.length && serverRev === null) return {};
-    map = {};
-    assignedTasks.forEach(t => { if (isTaskForMe(t)) map[newTaskKey(t)] = 1; });
-    try { localStorage.setItem(seenTasksKey(), JSON.stringify(map)); } catch (e) {}
-  }
-  return map;
-}
-function isNewTaskForMe(task, seenTasks) { return isTaskForMe(task) && !seenTasks[newTaskKey(task)]; }
-function markAllNewTasksSeen() {
-  if (!currentUserSession) return;
-  const next = {};
-  assignedTasks.forEach(t => { if (isTaskForMe(t)) next[newTaskKey(t)] = 1; });
-  try { localStorage.setItem(seenTasksKey(), JSON.stringify(next)); } catch (e) {}
-}
-function dismissNewBadge(taskId) {
-  const task = assignedTasks.find(t => t.id === taskId);
-  if (!task) return;
-  const map = getSeenTasks();
-  map[newTaskKey(task)] = 1;
-  try { localStorage.setItem(seenTasksKey(), JSON.stringify(map)); } catch (e) {}
-  renderAssignedKanban();
 }
 
 function renderKanban() {
@@ -1924,9 +1073,7 @@ function renderKanban() {
   const searchText = readFilterValue('projectSearchInput', '').trim().toLowerCase();
   const deadlineMode = readFilterValue('projectDeadlineFilter', 'all');
 
-  const sortedProjects = sortTasksSmart(projects);
-
-  sortedProjects.forEach(task => {
+  projects.forEach(task => {
     if (!canSeeProjectTask(task)) return;
     if (selectedPriority !== 'all' && task.priority !== selectedPriority) return;
     if (!taskMatchesSearch(task, searchText)) return;
@@ -1940,7 +1087,6 @@ function renderKanban() {
 
     const isInProgressChecked = (task.status === 'In Progress' || task.status === 'Done') ? 'checked' : '';
     const isDoneChecked = (task.status === 'Done') ? 'checked' : '';
-    const disableInProgress = (task.status === 'Done') ? 'disabled' : '';
     let priColor = task.priority === 'High' ? '#dc2626' : (task.priority === 'Low' ? '#10b981' : '#f59e0b');
     let priBadge = task.priority ? `<span style="font-size: 10px; background: ${priColor}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${escapeHTML(task.priority)}</span>` : '';
 
@@ -1950,6 +1096,12 @@ function renderKanban() {
       if (new Date(task.deadline) < new Date()) { isOverdue = true; card.classList.add('overdue'); }
     }
 
+    let emailButtonHTML = '';
+    if (isPrivilegedInfo(currentUserInfo)) {
+      const mailtoUrl = generateMailtoLink(task.emailUser, task.title, task.scope, task.deadline, task);
+      if (mailtoUrl) { emailButtonHTML = `<button class="btn-card-action btn-email-action" onclick="triggerOutlookMail('${mailtoUrl}')">✉ Mail</button>`; }
+    }
+
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
         <div class="task-title" style="margin: 0;">${escapeHTML(task.title)}</div>
@@ -1957,17 +1109,14 @@ function renderKanban() {
       </div>
       <div class="task-details-box">${escapeHTML(task.scope || 'No Details')}</div>
       <div class="task-routing">
-        <label class="route-option"><input type="checkbox" ${isInProgressChecked} ${disableInProgress} onchange="routeTask('${task.id}', 'In Progress', this.checked)">Move to In Progress</label>
+        <label class="route-option"><input type="checkbox" ${isInProgressChecked} onchange="routeTask('${task.id}', 'In Progress', this.checked)">Move to In Progress</label>
         <label class="route-option"><input type="checkbox" ${isDoneChecked} onchange="routeTask('${task.id}', 'Done', this.checked)">Move to Done</label>
       </div>
       <div class="task-meta">
         <div class="task-meta-info">
-          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-            <span style="${isOverdue ? 'color:#dc2626; font-weight:bold;' : ''}">📅 ${escapeHTML(formattedDeadline)}</span>
-            ${getSlaCountdownBadge(task.deadline, task.status)}
-          </div>
+          <span style="${isOverdue ? 'color:#dc2626; font-weight:bold;' : ''}">📅 ${escapeHTML(formattedDeadline)} ${isOverdue ? ' (Overdue!)' : ''}</span>
         </div>
-        <div class="card-actions-wrapper"><button class="btn-card-action" style="background:var(--btn-secondary-bg); color:var(--btn-secondary-text);" onclick="openEditProjectTask('${task.id}')">✎ Edit</button><button class="btn-card-action btn-delete-action" onclick="deleteIndividualProjectTask('${task.id}')">🗑 Delete</button></div>
+        <div class="card-actions-wrapper">${emailButtonHTML}<button class="btn-card-action btn-delete-action" onclick="deleteIndividualProjectTask('${task.id}')">🗑 Delete</button></div>
       </div>
     `;
     if (task.status === 'To Do') { todoList.appendChild(card); cTodo++; }
@@ -1977,7 +1126,6 @@ function renderKanban() {
   document.getElementById('todo-count').innerText = cTodo;
   document.getElementById('inprogress-count').innerText = cInprog;
   document.getElementById('done-count').innerText = cDone;
-  updateSummaryStrip('projects');
 }
 
 function renderAssignedKanban() {
@@ -1994,17 +1142,12 @@ function renderAssignedKanban() {
   const deadlineMode = readFilterValue('assignedDeadlineFilter', 'all');
   const isPrivileged = isPrivilegedInfo(currentUserInfo);
   const seenMap = getSeenMap();
-  const seenTasks = getSeenTasks();
   let totalUnread = 0;
-  let totalNew = 0;
 
-  sortTasksSmart(assignedTasks).forEach(task => {
+  assignedTasks.forEach(task => {
     if (!canSeeAssignedTask(task)) return;
     const unreadCount = getUnreadCommentCount(task, seenMap);
     totalUnread += unreadCount;
-    const isNewForMe = isNewTaskForMe(task, seenTasks);
-    if (isNewForMe) totalNew++;
-    const newBadgeHTML = isNewForMe ? `<span class="task-tag-badge" style="background:#dc2626; cursor:pointer;" title="Click to dismiss" onclick="dismissNewBadge('${task.id}')">🆕 New</span>` : '';
     if (isPrivileged && selectedFilterMember !== 'all' && normalizeId(task.userId) !== normalizeId(selectedFilterMember)) return;
     if (selectedPriority !== 'all' && task.priority !== selectedPriority) return;
     if (!taskMatchesSearch(task, searchText)) return;
@@ -2018,8 +1161,8 @@ function renderAssignedKanban() {
 
     const isInProgressChecked = (task.status === 'In Progress' || task.status === 'Done') ? 'checked' : '';
     const isDoneChecked = (task.status === 'Done') ? 'checked' : '';
-    const disableInProgress = (task.status === 'Done') ? 'disabled' : '';
     
+    // كل المشاركين في التاسك (اليوزر والأدمن والأبر أدمن) بيشوفوا كل التعليقات
     let commentsCount = (task.comments || []).length;
     let hasNewCommentIndicator = commentsCount > 0 ? `<span style="background: var(--accent-primary); color: white; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; margin-left: 4px;">💬 ${commentsCount}</span>` : '';
     
@@ -2027,12 +1170,16 @@ function renderAssignedKanban() {
     let commentsBtnHTML = `<button class="btn-card-action" style="background:#0284c7; color:#fff;" onclick="openCommentsModal('${task.id}')">💬 Comments ${hasNewCommentIndicator}${unreadBadge}</button>`;
     let editButtonHTML = isPrivileged ? `<button class="btn-card-action" style="background:var(--btn-secondary-bg); color:var(--btn-secondary-text);" onclick="openEditAssignedTask('${task.id}')">✎ Edit</button>` : '';
     let adminDeleteButtonHTML = isPrivileged ? `<button class="btn-card-action btn-delete-action" onclick="deleteIndividualAssignedTask('${task.id}')">🗑 Delete</button>` : '';
+    let emailButtonHTML = '';
+    if (isPrivileged) {
+      const mailtoUrl = generateMailtoLink(task.userId, task.title, task.scope, task.deadline, task);
+      if (mailtoUrl) { emailButtonHTML = `<button class="btn-card-action btn-email-action" onclick="triggerOutlookMail('${mailtoUrl}')">✉ Mail</button>`; }
+    }
 
     let priColor = task.priority === 'High' ? '#dc2626' : (task.priority === 'Low' ? '#10b981' : '#f59e0b');
     let priBadge = task.priority ? `<span style="font-size: 10px; background: ${priColor}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${escapeHTML(task.priority)}</span>` : '';
 
     let labelHTML = task.labels ? `<span class="task-tag-badge">${escapeHTML(task.labels)}</span>` : '';
-    let recurHTML = task.recur === 'weekly' ? `<span class="task-tag-badge" style="background:#0f766e;">🔁 Weekly · ${escapeHTML(REPEAT_DAY_NAMES[Number(task.recurDay)] || '')}</span>` : (task.recur === 'monthly' ? `<span class="task-tag-badge" style="background:#0f766e;">🔁 Monthly · Day ${escapeHTML(task.recurDate)}</span>` : '');
 
     let creatorMember = teamMembers.find(m => normalizeId(m.userId) === normalizeId(task.createdBy));
     let creatorName = creatorMember ? creatorMember.name : (task.createdBy || 'Admin');
@@ -2042,26 +1189,27 @@ function renderAssignedKanban() {
       if (new Date(task.deadline) < new Date()) { isOverdue = true; card.classList.add('overdue'); }
     }
 
-    const badgesRowHTML = (newBadgeHTML || recurHTML || labelHTML || priBadge)
-      ? `<div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">${newBadgeHTML}${recurHTML}${labelHTML}${priBadge}</div>` : '';
+    // عرض Request و Priority بجانب بعضهما بالجهة اليمنى بالأعلى
     card.innerHTML = `
-      <div class="task-title" style="margin: 0 0 6px 0;">${escapeHTML(task.title)}</div>
-      ${badgesRowHTML}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div class="task-title" style="margin: 0;">${escapeHTML(task.title)}</div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          ${labelHTML}
+          ${priBadge}
+        </div>
+      </div>
       <span class="assigned-by-badge">✍ <b>Assigned By:</b> ${escapeHTML(creatorName)}</span>
       <div class="task-details-box">${escapeHTML(task.scope || 'No Details')}</div>
       <div class="task-routing">
-        <label class="route-option"><input type="checkbox" ${isInProgressChecked} ${disableInProgress} onchange="routeAssignedTask('${task.id}', 'In Progress', this.checked)">Move to In Progress</label>
+        <label class="route-option"><input type="checkbox" ${isInProgressChecked} onchange="routeAssignedTask('${task.id}', 'In Progress', this.checked)">Move to In Progress</label>
         <label class="route-option"><input type="checkbox" ${isDoneChecked} onchange="routeAssignedTask('${task.id}', 'Done', this.checked)">Move to Done</label>
       </div>
       <div class="task-meta">
         <div class="task-meta-info">
           <span>👤 <b>Assignee:</b> ${escapeHTML(task.assignee)}</span>
-          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-            <span style="${isOverdue ? 'color:#dc2626; font-weight:bold;' : ''}">📅 <b>Deadline:</b> ${escapeHTML(formattedDeadline)}</span>
-            ${getSlaCountdownBadge(task.deadline, task.status)}
-          </div>
+          <span style="${isOverdue ? 'color:#dc2626; font-weight:bold;' : ''}">📅 <b>Deadline:</b> ${escapeHTML(formattedDeadline)} ${isOverdue ? ' (Overdue!)' : ''}</span>
         </div>
-        <div class="card-actions-wrapper">${commentsBtnHTML}${editButtonHTML}${adminDeleteButtonHTML}</div>
+        <div class="card-actions-wrapper">${emailButtonHTML}${commentsBtnHTML}${editButtonHTML}${adminDeleteButtonHTML}</div>
       </div>
     `;
     if (task.status === 'To Do') { todoList.appendChild(card); cTodo++; }
@@ -2071,442 +1219,7 @@ function renderAssignedKanban() {
   document.getElementById('assigned-todo-count').innerText = cTodo;
   document.getElementById('assigned-inprogress-count').innerText = cInprog;
   document.getElementById('assigned-done-count').innerText = cDone;
-  updateSummaryStrip('assigned');
-  updateNotificationBell(totalUnread + totalNew, totalNew, totalUnread);
-}
-
-// =========================================================================
-// ======= MEETING MINUTES & ACTION TRACKER LOGIC ==========================
-// =========================================================================
-
-function renderMeetings() {
-  renderMeetingsList();
-  renderActiveMeetingWorkspace();
-}
-
-function renderMeetingsList() {
-  const container = document.getElementById('meetingListContainer');
-  const countBadge = document.getElementById('meetingsCountBadge');
-  if (!container) return;
-  container.innerHTML = '';
-
-  const q = readFilterValue('meetingSearchInput', '').trim().toLowerCase();
-  const visibleMeetings = meetings.filter(m => {
-    if (!canSeeMeeting(m)) return false;
-    if (q) {
-      const matchTitle = (m.title || '').toLowerCase().includes(q);
-      const matchNotes = (m.notes || '').toLowerCase().includes(q);
-      const matchAgenda = (m.agenda || '').toLowerCase().includes(q);
-      return matchTitle || matchNotes || matchAgenda;
-    }
-    return true;
-  }).sort((a, b) => (new Date(b.date || 0).getTime()) - (new Date(a.date || 0).getTime()));
-
-  if (countBadge) countBadge.innerText = visibleMeetings.length;
-
-  if (visibleMeetings.length === 0) {
-    container.innerHTML = '<p style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 20px 0;">No meetings found.</p>';
-    if (!meetings.some(m => m.id === selectedMeetingId)) {
-      selectedMeetingId = null;
-      renderActiveMeetingWorkspace();
-    }
-    return;
-  }
-
-  if (!selectedMeetingId || !visibleMeetings.some(m => m.id === selectedMeetingId)) {
-    selectedMeetingId = visibleMeetings[0].id;
-  }
-
-  visibleMeetings.forEach(m => {
-    const card = document.createElement('div');
-    card.className = `meeting-item-card ${m.id === selectedMeetingId ? 'active' : ''}`;
-    card.onclick = () => selectMeeting(m.id);
-
-    const actionsCount = assignedTasks.filter(t => t.meetingId === m.id).length;
-    const dateFormatted = formatCustomDateTime(m.date);
-
-    card.innerHTML = `
-      <div class="meeting-card-title">${escapeHTML(m.title)}</div>
-      <div class="meeting-card-meta">
-        <span>📅 ${escapeHTML(dateFormatted)}</span>
-        <span class="task-count" style="font-size: 10px;">${actionsCount} Action${actionsCount === 1 ? '' : 's'}</span>
-      </div>
-    `;
-    container.appendChild(card);
-  });
-  renderActiveMeetingWorkspace();
-}
-
-function selectMeeting(meetingId) {
-  selectedMeetingId = meetingId;
-  document.querySelectorAll('.meeting-item-card').forEach(el => el.classList.remove('active'));
-  renderMeetingsList();
-}
-
-function renderActiveMeetingWorkspace() {
-  const emptyState = document.getElementById('meetingEmptyState');
-  const activeContent = document.getElementById('meetingActiveContent');
-  if (!emptyState || !activeContent) return;
-
-  const meeting = meetings.find(m => m.id === selectedMeetingId && canSeeMeeting(m));
-  if (!meeting) {
-    emptyState.style.display = 'flex';
-    activeContent.style.display = 'none';
-    return;
-  }
-
-  emptyState.style.display = 'none';
-  activeContent.style.display = 'flex';
-
-  document.getElementById('activeMeetingTitle').innerText = meeting.title;
-  document.getElementById('activeMeetingDate').innerText = formatCustomDateTime(meeting.date);
-
-  const creator = teamMembers.find(u => normalizeId(u.userId) === normalizeId(meeting.createdBy));
-  document.getElementById('activeMeetingOrganizer').innerText = creator ? creator.name : (meeting.createdBy || 'Unknown');
-
-  // Attendees tags
-  const tagsContainer = document.getElementById('activeMeetingAttendeesBadges');
-  tagsContainer.innerHTML = '';
-  (meeting.attendees || []).forEach(uid => {
-    const mem = teamMembers.find(u => normalizeId(u.userId) === normalizeId(uid));
-    const span = document.createElement('span');
-    span.className = 'meeting-attendee-tag';
-    span.innerText = mem ? mem.name : uid;
-    tagsContainer.appendChild(span);
-  });
-
-  // Notes
-  const notesArea = document.getElementById('activeMeetingNotesText');
-  if (document.activeElement !== notesArea) {
-    let currentNotes = meeting.notes;
-    if (!currentNotes || !currentNotes.trim()) {
-      currentNotes = meeting.agenda ? `Agenda:\n• ${meeting.agenda}\n\nDiscussion Points:\n• ` : '• ';
-      meeting.notes = currentNotes;
-    }
-    notesArea.value = currentNotes;
-  }
-
-  // Linked Actions List
-  renderMeetingActionItems(meeting.id);
-}
-
-function renderMeetingActionItems(meetingId) {
-  const container = document.getElementById('activeMeetingActionsList');
-  const countBadge = document.getElementById('activeMeetingActionsCount');
-  if (!container) return;
-  container.innerHTML = '';
-
-  const actions = assignedTasks.filter(t => t.meetingId === meetingId);
-  if (countBadge) countBadge.innerText = actions.length;
-
-  if (actions.length === 0) {
-    container.innerHTML = '<p style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 25px 0;">No action items assigned for this meeting yet. Use "+ Assign Task" or the quick converter below to create actions.</p>';
-    return;
-  }
-
-  actions.forEach(action => {
-    const isDone = action.status === 'Done';
-    const div = document.createElement('div');
-    div.className = `meeting-action-item ${isDone ? 'done' : ''}`;
-
-    let priColor = action.priority === 'High' ? '#dc2626' : (action.priority === 'Low' ? '#10b981' : '#f59e0b');
-    let deadlineFormatted = formatCustomDateTime(action.deadline);
-    let isOverdue = action.deadline && !isDone && new Date(action.deadline) < new Date();
-
-    div.innerHTML = `
-      <div class="meeting-action-head">
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-          <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleMeetingActionDone('${action.id}', this.checked)" style="accent-color: var(--accent-success); width: 16px; height: 16px;">
-          <span style="${isDone ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${escapeHTML(action.title)}</span>
-        </label>
-        <span style="font-size: 10px; background: ${priColor}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${escapeHTML(action.priority || 'Medium')}</span>
-      </div>
-      <div style="font-size: 12px; color: var(--text-muted); margin-left: 24px;">${escapeHTML(action.scope || '')}</div>
-      <div class="meeting-action-meta" style="margin-left: 24px;">
-        <span>👤 <b>${escapeHTML(action.assignee || action.userId)}</b></span>
-        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-          <span style="${isOverdue ? 'color:#dc2626; font-weight:bold;' : ''}">📅 ${escapeHTML(deadlineFormatted)}</span>
-          ${getSlaCountdownBadge(action.deadline, action.status)}
-        </div>
-        <button class="btn-card-action" style="background:var(--btn-secondary-bg); color:var(--btn-secondary-text);" onclick="openEditAssignedTask('${action.id}')">✎ Edit</button>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
-
-function toggleMeetingActionDone(actionId, isChecked) {
-  const task = assignedTasks.find(t => t.id === actionId);
-  if (!task) return;
-  setTaskStatus(task, isChecked ? 'Done' : 'In Progress');
-  task.updatedAt = Date.now();
-  syncAndUpgradeSystemFile();
-}
-
-function handleMeetingNotesFocus(ta) {
-  if (!ta.value || !ta.value.trim()) {
-    ta.value = '• ';
-    ta.selectionStart = ta.selectionEnd = 2;
-  }
-}
-
-function handleMeetingNotesKeydown(e) {
-  const ta = e.target;
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const val = ta.value;
-
-    const lastNewline = val.lastIndexOf('\n', start - 1);
-    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
-    const currentLine = val.substring(lineStart, start);
-
-    // If pressing Enter on a line that only has the bullet "• " without any text, remove the bullet
-    if (/^[•\-\*]\s*$/.test(currentLine.trim())) {
-      ta.value = val.substring(0, lineStart) + '\n' + val.substring(end);
-      ta.selectionStart = ta.selectionEnd = lineStart + 1;
-      handleMeetingNotesInput();
-      return;
-    }
-
-    const insertText = '\n• ';
-    ta.value = val.substring(0, start) + insertText + val.substring(end);
-    ta.selectionStart = ta.selectionEnd = start + insertText.length;
-    handleMeetingNotesInput();
-  } else if (e.key === 'Backspace') {
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    if (start === end && start >= 2) {
-      const val = ta.value;
-      const lastNewline = val.lastIndexOf('\n', start - 1);
-      const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
-      const linePrefix = val.substring(lineStart, start);
-      if (linePrefix === '• ') {
-        e.preventDefault();
-        ta.value = val.substring(0, lineStart) + val.substring(start);
-        ta.selectionStart = ta.selectionEnd = lineStart;
-        handleMeetingNotesInput();
-      }
-    }
-  }
-}
-
-function handleMeetingNotesInput() {
-  const meeting = meetings.find(m => m.id === selectedMeetingId);
-  if (!meeting) return;
-
-  const notes = document.getElementById('activeMeetingNotesText').value;
-  meeting.notes = notes;
-  meeting.updatedAt = Date.now();
-
-  const ind = document.getElementById('notesSaveIndicator');
-  if (ind) { ind.style.display = 'inline'; ind.innerText = 'Saving...'; }
-
-  clearTimeout(meetingNotesSaveTimer);
-  meetingNotesSaveTimer = setTimeout(() => {
-    syncAndUpgradeSystemFile();
-    if (ind) { ind.innerText = 'Saved ✓'; setTimeout(() => { ind.style.display = 'none'; }, 2000); }
-  }, 1000);
-}
-
-function quickConvertInputToAction() {
-  const input = document.getElementById('quickActionInput');
-  const text = (input ? input.value : '').trim();
-  if (!text) return;
-
-  const meeting = meetings.find(m => m.id === selectedMeetingId);
-  if (!meeting) return;
-
-  openAssignTaskForMeeting(text);
-  input.value = '';
-}
-
-function openNewMeetingModal() {
-  const form = document.getElementById('meetingForm');
-  if (form) form.reset();
-  document.getElementById('meetingEditId').value = '';
-  document.getElementById('meetingModalTitle').innerText = 'Start / Schedule Meeting';
-  document.getElementById('meetingModalSubmitBtn').innerText = 'Create Meeting';
-
-  // default date = now
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  document.getElementById('meetingModalDateInput').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-  // Build attendees checkboxes
-  const container = document.getElementById('meetingAttendeesDropdownList');
-  if (container) {
-    let html = `<label class="dropdown-item-option" style="border-bottom: 1px solid var(--border-color); background-color: var(--input-bg);"><input type="checkbox" id="selectAllMeetingAttendees" onchange="toggleSelectAllMeetingAttendees(this)"> [ Select All / اختيار الكل ]</label>`;
-    teamMembers.forEach(mem => {
-      const isMe = normalizeId(mem.userId) === normalizeId(currentUserSession);
-      html += `<label class="dropdown-item-option"><input type="checkbox" class="meeting-attendee-cb" value="${escapeHTML(mem.userId)}" ${isMe ? 'checked' : ''}> ${escapeHTML(mem.name)} (${escapeHTML(mem.role)})</label>`;
-    });
-    container.innerHTML = html;
-  }
-
-  openModal('meetingModal');
-}
-
-function toggleSelectAllMeetingAttendees(source) {
-  document.querySelectorAll('.meeting-attendee-cb').forEach(cb => cb.checked = source.checked);
-}
-
-function saveMeetingModal(e) {
-  e.preventDefault();
-  const editId = document.getElementById('meetingEditId').value;
-  const title = document.getElementById('meetingModalTitleInput').value.trim();
-  const date = document.getElementById('meetingModalDateInput').value;
-  const agenda = document.getElementById('meetingModalAgendaInput').value.trim();
-  const attendees = Array.from(document.querySelectorAll('.meeting-attendee-cb:checked')).map(cb => cb.value);
-
-  const nowTs = Date.now();
-  if (editId) {
-    const meeting = meetings.find(m => m.id === editId);
-    if (meeting) {
-      meeting.title = title;
-      meeting.date = date;
-      meeting.agenda = agenda;
-      meeting.attendees = attendees;
-      meeting.updatedAt = nowTs;
-    }
-  } else {
-    const newMeeting = {
-      id: 'm-' + nowTs + '-' + Math.floor(Math.random() * 1000),
-      title: title,
-      date: date,
-      agenda: agenda,
-      attendees: attendees,
-      notes: agenda ? `Agenda:\n• ${agenda}\n\nDiscussion Points:\n• ` : '• ',
-      createdBy: currentUserSession,
-      createdAt: nowTs,
-      updatedAt: nowTs
-    };
-    meetings.unshift(newMeeting);
-    selectedMeetingId = newMeeting.id;
-  }
-
-  closeModal('meetingModal');
-  syncAndUpgradeSystemFile();
-  renderMeetings();
-}
-
-function deleteActiveMeeting() {
-  const meeting = meetings.find(m => m.id === selectedMeetingId);
-  if (!meeting) return;
-  if (!confirm(`Delete meeting "${meeting.title}"?\n(Action tasks created from this meeting will remain on the board).`)) return;
-
-  meetings = meetings.filter(m => m.id !== selectedMeetingId);
-  selectedMeetingId = null;
-  syncAndUpgradeSystemFile();
-  renderMeetings();
-}
-
-function openAssignTaskForMeeting(prefilledTitle) {
-  const meeting = meetings.find(m => m.id === selectedMeetingId);
-  if (!meeting) return;
-
-  openModal('assignedTaskModal');
-  document.getElementById('assignedTaskMeetingId').value = meeting.id;
-
-  if (prefilledTitle) {
-    document.getElementById('assignedTaskTitle').value = prefilledTitle;
-  }
-  document.getElementById('assignedTaskScope').value = `[From Meeting: ${meeting.title} (${formatCustomDateTime(meeting.date)})] `;
-  setAssignedLabelValue('Meeting Action');
-
-  // Pre-check meeting attendees if available
-  if (Array.isArray(meeting.attendees) && meeting.attendees.length > 0) {
-    document.querySelectorAll('.assignee-item-cb').forEach(cb => {
-      cb.checked = meeting.attendees.includes(cb.value);
-    });
-    updateSelectedAssigneesEmails();
-  }
-}
-
-function shareMeetingMinutesMail() {
-  const meeting = meetings.find(m => m.id === selectedMeetingId);
-  if (!meeting) return;
-
-  const attendeeEmails = (meeting.attendees || []).map(uid => uid.includes('@') ? uid : uid + '@thecontactcentre.ae').join(';');
-  const formattedDate = formatCustomDateTime(meeting.date);
-  const organizerMember = teamMembers.find(u => normalizeId(u.userId) === normalizeId(meeting.createdBy));
-  const organizerName = organizerMember ? organizerMember.name : (currentUserInfo ? currentUserInfo.name : 'MIS Operations');
-  const notesContent = (meeting.notes || '').trim();
-
-  let bodyText = `Dear Team,\n\nMeeting Notes:\n${notesContent || '• No notes recorded.'}\n\nBest Regards,\n${organizerName}`;
-
-  // Copy notes points to clipboard as well for convenience
-  try {
-    creatorCopyFallback(`Meeting Notes:\n${notesContent}`);
-  } catch (e) {}
-
-  // Subject: Meeting Title - Date (clean & professional without brackets, without from, without parentheses)
-  const subject = `${meeting.title} - ${formattedDate}`;
-  const mailtoUrl = `mailto:${attendeeEmails}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`.replace(/'/g, '%27');
-  window.location.href = mailtoUrl;
-}
-
-function copyMeetingMinutesText(btn) {
-  const meeting = meetings.find(m => m.id === selectedMeetingId);
-  if (!meeting) return;
-
-  const formattedDate = formatCustomDateTime(meeting.date);
-  const notesContent = (meeting.notes || '').trim();
-
-  let fullText = `${meeting.title} - ${formattedDate}\n\nMeeting Notes:\n${notesContent}\n`;
-  copyCreatorText(fullText.trim(), btn);
-}
-
-function renderAssigneeWorkloadInfo() {
-  const container = document.getElementById('assigneeWorkloadContainer');
-  if (!container) return;
-  const checkboxes = document.querySelectorAll('.assignee-item-cb:checked');
-  if (checkboxes.length === 0) {
-    container.style.display = 'none';
-    container.innerHTML = '';
-    return;
-  }
-
-  let html = '';
-  checkboxes.forEach(cb => {
-    const uid = normalizeId(cb.value);
-    const memberName = cb.getAttribute('data-name') || cb.value;
-
-    // Count ALL active tasks for this user across all assignedTasks (even if assigned by another admin)
-    const userTasks = assignedTasks.filter(t => normalizeId(t.userId) === uid && t.status !== 'Done');
-    const todoCount = userTasks.filter(t => t.status === 'To Do').length;
-    const inProgCount = userTasks.filter(t => t.status === 'In Progress').length;
-    const overdueCount = userTasks.filter(t => t.deadline && new Date(t.deadline) < new Date()).length;
-    const totalActive = userTasks.length;
-
-    let toneColor = '#10b981';
-    let statusText = 'Light Workload';
-    if (totalActive >= 6 || overdueCount > 1) {
-      toneColor = '#dc2626';
-      statusText = 'Heavy Workload';
-    } else if (totalActive >= 3 || overdueCount === 1) {
-      toneColor = '#f59e0b';
-      statusText = 'Moderate Workload';
-    }
-
-    html += `
-      <div style="background: var(--desc-box-bg); border: 1px solid var(--border-color); border-left: 3px solid ${toneColor}; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-          <b>👤 ${escapeHTML(memberName)}</b>
-          <span style="font-size: 10px; font-weight: bold; color: ${toneColor};">${statusText} (${totalActive} active)</span>
-        </div>
-        <div style="color: var(--text-muted); font-size: 11px;">
-          <span>📋 To Do: <b>${todoCount}</b></span> &nbsp;•&nbsp; 
-          <span>⏳ In Progress: <b>${inProgCount}</b></span>
-          ${overdueCount > 0 ? ` &nbsp;•&nbsp; <span style="color: #dc2626; font-weight: bold;">🚨 Overdue: ${overdueCount}</span>` : ''}
-        </div>
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
-  container.style.display = 'block';
+  updateNotificationBell(totalUnread);
 }
 
 function updateSelectedAssigneesEmails() {
@@ -2519,7 +1232,6 @@ function updateSelectedAssigneesEmails() {
   }
   const selectAll = document.getElementById('selectAllAssignees');
   if (selectAll) selectAll.checked = allBoxes.length > 0 && checkboxes.length === allBoxes.length;
-  renderAssigneeWorkloadInfo();
 }
 function toggleSelectAllAssignees(source) {
   document.querySelectorAll('.assignee-item-cb').forEach(cb => cb.checked = source.checked);
@@ -2577,7 +1289,7 @@ function saveTaskComment() {
 
 function generateMailtoLink(rawUsernames, title, scope, deadline, extras) {
   if (!rawUsernames || rawUsernames.trim() === '') return '';
-  const emailsArray = rawUsernames.split(',').map(user => user.trim()).filter(user => user.length > 0).map(user => user.includes('@') ? user : user + '@thecontactcentre.ae');
+  const emailsArray = rawUsernames.split(',').map(user => user.trim()).filter(user => user.length > 0).map(user => user.includes('@') ? user : user + '@example.com');
   const fullEmailsString = emailsArray.join(',');
   const emailSubject = encodeURIComponent(title);
   const formattedDeadline = formatCustomDateTime(deadline);
@@ -2590,10 +1302,20 @@ function generateMailtoLink(rawUsernames, title, scope, deadline, extras) {
 
 function triggerOutlookMail(mailtoUrl) { if (currentUserInfo && currentUserInfo.role !== 'User') window.location.href = mailtoUrl; }
 
-function downloadTasksCsv(myProjects, myAssigned) {
+function exportAndClearSystemData() {
+  if (!isPrivilegedInfo(currentUserInfo)) {
+    alert("Security Error: Access Denied. Only system Admins are authorized to export reports!");
+    return;
+  }
+  // كل أدمن بيصدّر ويمسح بياناته هو بس (الأبر أدمن بيشوف الكل)
+  const myProjects = projects.filter(t => canSeeProjectTask(t));
+  const myAssigned = assignedTasks.filter(t => canSeeAssignedTask(t));
+  if (myProjects.length + myAssigned.length === 0) { alert("There is no data to export."); return; }
+  if (!confirm(`Export ${myProjects.length + myAssigned.length} task(s) to a CSV file and remove them from the system?`)) return;
+
   const q = (v) => {
     let s = String(v == null ? '' : v);
-    if (/^[=+\-@]/.test(s)) s = "'" + s;
+    if (/^[=+\-@]/.test(s)) s = "'" + s;   // حماية من Excel formulas
     return `"${s.replace(/"/g, '""')}"`;
   };
   const commentsText = (t) => (t.comments || []).map(c => {
@@ -2603,13 +1325,13 @@ function downloadTasksCsv(myProjects, myAssigned) {
   const nameOf = (id) => { const m = teamMembers.find(x => normalizeId(x.userId) === normalizeId(id)); return m ? m.name : (id || ''); };
 
   let csvContent = "\uFEFF";
-  csvContent += "Board Type,Task Summary,Detailed Scope,Assignee/Target Email,Current Status,Creation Date,Target Deadline,Completed Date,Priority,Label,Assigned By,Comments\n";
+  csvContent += "Board Type,Task Summary,Detailed Scope,Assignee/Target Email,Current Status,Creation Date,Target Deadline,Priority,Label,Assigned By,Comments\n";
   myProjects.forEach(t => {
-    const row = [q("Project Backlog"), q(t.title), q(t.scope), q(t.emailUser), q(t.status), q(formatDateTimeOrBlank(t.creationDate)), q(formatDateTimeOrBlank(t.deadline)), q(formatDateTimeOrBlank(t.completedAt)), q(t.priority), q(t.labels), q(nameOf(t.createdBy)), q(commentsText(t))];
+    const row = [q("Project Backlog"), q(t.title), q(t.scope), q(t.emailUser), q(t.status), q(formatDateTimeOrBlank(t.creationDate)), q(formatDateTimeOrBlank(t.deadline)), q(t.priority), q(t.labels), q(nameOf(t.createdBy)), q(commentsText(t))];
     csvContent += row.join(",") + "\n";
   });
   myAssigned.forEach(t => {
-    const row = [q("Assigned Board"), q(t.title), q(t.scope), q(`${t.assignee || ''} (${t.userId || ''})`), q(t.status), q(formatDateTimeOrBlank(t.creationDate)), q(formatDateTimeOrBlank(t.deadline)), q(formatDateTimeOrBlank(t.completedAt)), q(t.priority), q(t.labels), q(nameOf(t.createdBy)), q(commentsText(t))];
+    const row = [q("Assigned Board"), q(t.title), q(t.scope), q(`${t.assignee || ''} (${t.userId || ''})`), q(t.status), q(formatDateTimeOrBlank(t.creationDate)), q(formatDateTimeOrBlank(t.deadline)), q(t.priority), q(t.labels), q(nameOf(t.createdBy)), q(commentsText(t))];
     csvContent += row.join(",") + "\n";
   });
 
@@ -2619,41 +1341,15 @@ function downloadTasksCsv(myProjects, myAssigned) {
   link.href = URL.createObjectURL(blob);
   link.setAttribute("download", `MIS_Tasks_Report_${normalizeId(currentUserSession)}_${dateStr}.csv`);
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
-}
 
-function exportDataOnly() {
-  if (!isPrivilegedInfo(currentUserInfo)) { alert("Security Error: Access Denied. Only system Admins are authorized to export reports!"); return; }
-  const myProjects = projects.filter(t => canSeeProjectTask(t));
-  const myAssigned = assignedTasks.filter(t => canSeeAssignedTask(t));
-  if (myProjects.length + myAssigned.length === 0) { alert("There is no data to export."); return; }
-  downloadTasksCsv(myProjects, myAssigned);
-}
-
-function deleteMyData() {
-  if (!isPrivilegedInfo(currentUserInfo)) { alert("Security Error: Access Denied. Only system Admins can delete data!"); return; }
-  const myProjects = projects.filter(t => canSeeProjectTask(t));
-  const myAssigned = assignedTasks.filter(t => canSeeAssignedTask(t));
-  const deletableAssigned = myAssigned.filter(t => !t.recur);
-  const keptRecurring = myAssigned.length - deletableAssigned.length;
-  const total = myProjects.length + deletableAssigned.length;
-  if (total === 0) { alert(keptRecurring ? "Nothing to delete: only recurring tasks remain (delete them one by one with the Delete button on the card)." : "There is no data to delete."); return; }
-  if (!confirm("Permanently DELETE " + total + " task(s) from your data WITHOUT exporting?\nThis cannot be undone. Tip: use \"Export Only\" first." + (keptRecurring ? "\n(" + keptRecurring + " recurring task(s) will be kept.)" : ""))) return;
   projects = projects.filter(t => myProjects.indexOf(t) === -1);
-  assignedTasks = assignedTasks.filter(t => deletableAssigned.indexOf(t) === -1);
+  assignedTasks = assignedTasks.filter(t => myAssigned.indexOf(t) === -1);
   syncAndUpgradeSystemFile();
-  alert("Done: " + total + " task(s) were deleted.");
+  alert("Success: your tasks were exported to CSV and cleared successfully!");
 }
 
-function deleteIndividualProjectTask(taskId) {
-  const task = projects.find(t => t.id === taskId); if (!task) return;
-  if (!confirm('Delete task "' + (task.title || '') + '" permanently?')) return;
-  projects = projects.filter(t => t.id !== taskId); syncAndUpgradeSystemFile();
-}
-function deleteIndividualAssignedTask(taskId) {
-  const task = assignedTasks.find(t => t.id === taskId); if (!task) return;
-  if (!confirm('Delete task "' + (task.title || '') + '" permanently?' + (task.recur ? '\n(This is a recurring task: it will stop repeating.)' : ''))) return;
-  assignedTasks = assignedTasks.filter(t => t.id !== taskId); syncAndUpgradeSystemFile();
-}
+function deleteIndividualProjectTask(taskId) { projects = projects.filter(t => t.id !== taskId); syncAndUpgradeSystemFile(); }
+function deleteIndividualAssignedTask(taskId) { assignedTasks = assignedTasks.filter(t => t.id !== taskId); syncAndUpgradeSystemFile(); }
 
 function openModal(modalId) {
   if (modalId === 'assignedTaskModal') {
@@ -2665,18 +1361,11 @@ function openModal(modalId) {
     document.getElementById('assignedTaskStatus').value = 'To Do';
     document.getElementById('assignedTaskPriority').value = 'Medium';
     document.getElementById('assignedTaskEditId').value = '';
-    document.getElementById('assignedTaskMeetingId').value = '';
     document.getElementById('assignedModalTitle').innerText = 'Assign Task to Team Member';
     document.getElementById('assignedSubmitBtn').innerText = 'Assign Task';
-    const workloadBox = document.getElementById('assigneeWorkloadContainer');
-    if (workloadBox) { workloadBox.style.display = 'none'; workloadBox.innerHTML = ''; }
-    toggleLabelOther(); toggleRepeatOptions();
   } else if (modalId === 'taskModal') {
     const form = document.getElementById('taskForm');
     if (form) form.reset();
-    document.getElementById('projectTaskEditId').value = '';
-    document.getElementById('projectModalTitle').innerText = 'Create New Project Task';
-    document.getElementById('projectSubmitBtn').innerText = 'Save Task';
   }
   document.getElementById(modalId).style.display = 'flex';
 }
@@ -2686,211 +1375,36 @@ function closeModal(modalId) {
   if (modalId === 'assignedTaskModal') {
     const form = document.getElementById('assignedTaskForm');
     if (form) form.reset();
-    document.getElementById('assignedTaskMeetingId').value = '';
-    const workloadBox = document.getElementById('assigneeWorkloadContainer');
-    if (workloadBox) { workloadBox.style.display = 'none'; workloadBox.innerHTML = ''; }
-    toggleLabelOther(); toggleRepeatOptions();
   } else if (modalId === 'taskModal') {
     const form = document.getElementById('taskForm');
     if (form) form.reset();
-    document.getElementById('projectTaskEditId').value = '';
   }
 }
 
 function clearDoneTasks() { projects = projects.filter(t => !(t.status === 'Done' && canSeeProjectTask(t))); syncAndUpgradeSystemFile(); }
-function clearAssignedDoneTasks() { assignedTasks = assignedTasks.filter(t => !(t.status === 'Done' && canSeeAssignedTask(t) && !t.recur)); syncAndUpgradeSystemFile(); }
-
-function setTaskStatus(task, status) {
-  task.status = status;
-  if (status === 'Done') { if (!task.completedAt) task.completedAt = new Date().toISOString(); }
-  else { delete task.completedAt; }
-}
+function clearAssignedDoneTasks() { assignedTasks = assignedTasks.filter(t => !(t.status === 'Done' && canSeeAssignedTask(t))); syncAndUpgradeSystemFile(); }
 
 function routeTask(taskId, targetStatus, isChecked) {
   const task = projects.find(t => t.id === taskId); if (!task) return;
-  setTaskStatus(task, targetStatus === 'In Progress' ? (isChecked ? 'In Progress' : 'To Do') : (isChecked ? 'Done' : 'In Progress'));
+  task.status = targetStatus === 'In Progress' ? (isChecked ? 'In Progress' : 'To Do') : (isChecked ? 'Done' : 'In Progress');
   task.updatedAt = Date.now();
   syncAndUpgradeSystemFile();
 }
 
 function routeAssignedTask(taskId, targetStatus, isChecked) {
   const task = assignedTasks.find(t => t.id === taskId); if (!task) return;
-  setTaskStatus(task, targetStatus === 'In Progress' ? (isChecked ? 'In Progress' : 'To Do') : (isChecked ? 'Done' : 'In Progress'));
+  task.status = targetStatus === 'In Progress' ? (isChecked ? 'In Progress' : 'To Do') : (isChecked ? 'Done' : 'In Progress');
   task.updatedAt = Date.now();
   syncAndUpgradeSystemFile();
-}
-
-function openEditProjectTask(taskId) {
-  const task = projects.find(t => t.id === taskId);
-  if (!task || !canSeeProjectTask(task)) return;
-  openModal('taskModal');
-  document.getElementById('projectTaskEditId').value = taskId;
-  document.getElementById('projectModalTitle').innerText = 'Edit Project Task';
-  document.getElementById('projectSubmitBtn').innerText = 'Save Changes';
-  document.getElementById('taskTitle').value = task.title || '';
-  document.getElementById('taskScope').value = task.scope || '';
-  document.getElementById('taskPriority').value = task.priority || 'Medium';
-  document.getElementById('taskStatus').value = task.status || 'To Do';
-  document.getElementById('taskDeadline').value = task.deadline || '';
 }
 
 function saveTask(e) {
   e.preventDefault();
   const nowTs = Date.now();
-  const editId = document.getElementById('projectTaskEditId').value;
-  if (editId) {
-    const task = projects.find(t => t.id === editId);
-    if (!task || !canSeeProjectTask(task)) { closeModal('taskModal'); return; }
-    task.title = document.getElementById('taskTitle').value;
-    task.scope = document.getElementById('taskScope').value;
-    task.priority = document.getElementById('taskPriority').value;
-    setTaskStatus(task, document.getElementById('taskStatus').value);
-    task.deadline = document.getElementById('taskDeadline').value;
-    task.updatedAt = nowTs;
-    closeModal('taskModal');
-    syncAndUpgradeSystemFile();
-    return;
-  }
-  const newProject = { id: 't-' + nowTs, title: document.getElementById('taskTitle').value, scope: document.getElementById('taskScope').value, priority: document.getElementById('taskPriority').value, status: document.getElementById('taskStatus').value, deadline: document.getElementById('taskDeadline').value, createdBy: currentUserSession, creationDate: new Date(nowTs).toISOString(), updatedAt: nowTs };
-  if (newProject.status === 'Done') newProject.completedAt = new Date(nowTs).toISOString();
-  projects.push(newProject);
+  projects.push({ id: 't-' + nowTs, title: document.getElementById('taskTitle').value, scope: document.getElementById('taskScope').value, priority: document.getElementById('taskPriority').value, status: document.getElementById('taskStatus').value, deadline: document.getElementById('taskDeadline').value, createdBy: currentUserSession, creationDate: new Date(nowTs).toISOString(), updatedAt: nowTs });
   document.getElementById('taskForm').reset();
   closeModal('taskModal'); 
   syncAndUpgradeSystemFile();
-}
-
-// ===================== Label "Other" + weekly / monthly repeat =====================
-const REPEAT_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-function toggleLabelOther() {
-  const sel = document.getElementById('assignedTaskLabels');
-  const box = document.getElementById('assignedTaskLabelOther');
-  if (!sel || !box) return;
-  const show = sel.value === '__other__';
-  box.style.display = show ? 'block' : 'none';
-  box.required = show;
-  if (!show) box.value = '';
-}
-function getAssignedLabelValue() {
-  const sel = document.getElementById('assignedTaskLabels');
-  if (!sel) return '';
-  if (sel.value === '__other__') {
-    const box = document.getElementById('assignedTaskLabelOther');
-    return box ? box.value.trim() : '';
-  }
-  return sel.value;
-}
-function setAssignedLabelValue(label) {
-  const sel = document.getElementById('assignedTaskLabels');
-  const box = document.getElementById('assignedTaskLabelOther');
-  if (!sel) return;
-  const isKnown = Array.from(sel.options).some(o => o.value !== '' && o.value !== '__other__' && o.value === label);
-  if (!label) { sel.value = ''; }
-  else if (isKnown) { sel.value = label; }
-  else { sel.value = '__other__'; if (box) box.value = label; }
-  toggleLabelOther();
-}
-
-function toggleRepeatOptions() {
-  const modeEl = document.getElementById('assignedTaskRepeat');
-  const mode = modeEl ? modeEl.value : '';
-  const dayG = document.getElementById('assignedRepeatDayGroup');
-  const dateG = document.getElementById('assignedRepeatDateGroup');
-  if (dayG) dayG.style.display = (mode === 'weekly') ? '' : 'none';
-  if (dateG) dateG.style.display = (mode === 'monthly') ? '' : 'none';
-}
-function readRepeatSettings() {
-  const modeEl = document.getElementById('assignedTaskRepeat');
-  const mode = modeEl ? modeEl.value : '';
-  if (mode === 'weekly') return { recur: 'weekly', recurDay: Number(document.getElementById('assignedTaskRepeatDay').value), recurDate: null };
-  if (mode === 'monthly') return { recur: 'monthly', recurDay: null, recurDate: Number(document.getElementById('assignedTaskRepeatDate').value) };
-  return { recur: '', recurDay: null, recurDate: null };
-}
-function fillRepeatFields(task) {
-  const modeEl = document.getElementById('assignedTaskRepeat');
-  if (!modeEl) return;
-  modeEl.value = task.recur || '';
-  if (task.recur === 'weekly') document.getElementById('assignedTaskRepeatDay').value = String(task.recurDay);
-  if (task.recur === 'monthly') document.getElementById('assignedTaskRepeatDate').value = String(task.recurDate);
-  toggleRepeatOptions();
-}
-function recurSignature(t) { return (t.recur || '') + '|' + (t.recurDay == null ? '' : t.recurDay) + '|' + (t.recurDate == null ? '' : t.recurDate); }
-function applyRecurrenceToTask(task, settings) {
-  const before = recurSignature(task);
-  if (!settings.recur) {
-    delete task.recur; delete task.recurDay; delete task.recurDate; delete task.recurCycle; delete task.recurMailPending;
-    return;
-  }
-  task.recur = settings.recur; task.recurDay = settings.recurDay; task.recurDate = settings.recurDate;
-  if (recurSignature(task) !== before || !task.recurCycle) {
-    const start = getCurrentRecurCycleStart(task, new Date());
-    task.recurCycle = start ? dateKey(start) : '';
-    task.recurMailPending = false;
-  }
-}
-function pad2(n) { return String(n).padStart(2, '0'); }
-function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
-function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
-function getCurrentRecurCycleStart(task, now) {
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (task.recur === 'weekly') {
-    const diff = (today.getDay() - Number(task.recurDay) + 7) % 7;
-    return new Date(today.getFullYear(), today.getMonth(), today.getDate() - diff);
-  }
-  if (task.recur === 'monthly') {
-    let y = today.getFullYear(), m = today.getMonth();
-    let day = Math.min(Number(task.recurDate), daysInMonth(y, m));
-    if (today.getDate() < day) {
-      m -= 1; if (m < 0) { m = 11; y -= 1; }
-      day = Math.min(Number(task.recurDate), daysInMonth(y, m));
-    }
-    return new Date(y, m, day);
-  }
-  return null;
-}
-function shiftDeadlineForCycle(task, cycleStart) {
-  if (!task.deadline) return task.deadline;
-  const old = new Date(task.deadline);
-  if (isNaN(old.getTime())) return task.deadline;
-  const baseDay = old.getDate();
-  let d = new Date(old.getTime());
-  for (let guard = 0; d < cycleStart && guard < 600; guard++) {
-    if (task.recur === 'weekly') { d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7, d.getHours(), d.getMinutes()); }
-    else { const ny = d.getMonth() === 11 ? d.getFullYear() + 1 : d.getFullYear(); const nm = (d.getMonth() + 1) % 12; d = new Date(ny, nm, Math.min(baseDay, daysInMonth(ny, nm)), d.getHours(), d.getMinutes()); }
-  }
-  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
-}
-function processRecurringTasks() {
-  if (!currentUserInfo) return;
-  const now = new Date();
-  let changed = false;
-  assignedTasks.forEach(task => {
-    if (!task.recur || !canSeeAssignedTask(task)) return;
-    const start = getCurrentRecurCycleStart(task, now);
-    if (!start) return;
-    const key = dateKey(start);
-    if (!task.recurCycle) { task.recurCycle = key; task.updatedAt = Date.now(); changed = true; return; }
-    if (key <= task.recurCycle) return;
-    task.recurCycle = key;
-    setTaskStatus(task, 'To Do');
-    task.reminderSent = false;
-    task.deadline = shiftDeadlineForCycle(task, start);
-    task.recurMailPending = true;
-    task.updatedAt = Date.now();
-    changed = true;
-  });
-  if (changed) syncAndUpgradeSystemFile();
-}
-function sendPendingRecurringMails() {
-  if (!isPrivilegedInfo(currentUserInfo)) return;
-  const t = assignedTasks.find(x => x.recurMailPending && normalizeId(x.createdBy) === normalizeId(currentUserSession));
-  if (!t) return;
-  t.recurMailPending = false;
-  t.updatedAt = Date.now();
-  syncAndUpgradeSystemFile();
-  const tag = t.recur === 'monthly' ? '[Monthly Task] ' : '[Weekly Task] ';
-  const mailtoUrl = generateMailtoLink(t.userId, tag + t.title, t.scope, t.deadline, t);
-  if (mailtoUrl) window.location.href = mailtoUrl;
 }
 
 function saveAssignedTask(e) {
@@ -2903,10 +1417,8 @@ function saveAssignedTask(e) {
   const statusVal = document.getElementById('assignedTaskStatus').value;
   const deadlineVal = document.getElementById('assignedTaskDeadline').value;
   const priorityVal = document.getElementById('assignedTaskPriority').value;
-  const labelsVal = getAssignedLabelValue();
-  const repeatSettings = readRepeatSettings();
+  const labelsVal = document.getElementById('assignedTaskLabels') ? document.getElementById('assignedTaskLabels').value : '';
   const emailUserVal = document.getElementById('assignedTaskEmailUser').value;
-  const meetingIdVal = document.getElementById('assignedTaskMeetingId').value || null;
 
   if (emailUserVal && emailUserVal.trim() !== '') {
     const mailtoUrl = generateMailtoLink(emailUserVal, titleVal, scopeVal, deadlineVal, { priority: priorityVal, labels: labelsVal });
@@ -2915,26 +1427,7 @@ function saveAssignedTask(e) {
 
   const nowTs = Date.now();
   checkboxes.forEach((cb, index) => {
-    const newTask = {
-      id: 'at-' + nowTs + '-' + index,
-      title: titleVal,
-      scope: scopeVal,
-      assignee: cb.getAttribute('data-name'),
-      userId: cb.value,
-      status: statusVal,
-      deadline: deadlineVal,
-      priority: priorityVal,
-      labels: labelsVal,
-      meetingId: meetingIdVal,
-      comments: [],
-      createdBy: currentUserSession,
-      creationDate: new Date(nowTs).toISOString(),
-      reminderSent: false,
-      updatedAt: nowTs
-    };
-    if (newTask.status === 'Done') newTask.completedAt = new Date(nowTs).toISOString();
-    applyRecurrenceToTask(newTask, repeatSettings);
-    assignedTasks.push(newTask);
+    assignedTasks.push({ id: 'at-' + nowTs + '-' + index, title: titleVal, scope: scopeVal, assignee: cb.getAttribute('data-name'), userId: cb.value, status: statusVal, deadline: deadlineVal, priority: priorityVal, labels: labelsVal, comments: [], createdBy: currentUserSession, creationDate: new Date(nowTs).toISOString(), reminderSent: false, updatedAt: nowTs });
   });
   
   document.getElementById('assignedTaskForm').reset();
@@ -2945,19 +1438,18 @@ function saveAssignedTask(e) {
 function openEditAssignedTask(taskId) {
   const task = assignedTasks.find(t => t.id === taskId);
   if (!task || !isPrivilegedInfo(currentUserInfo) || !canSeeAssignedTask(task)) return;
-  openModal('assignedTaskModal');
+  openModal('assignedTaskModal');   // بيفضّي الفورم ويرجّعه لوضع الإضافة، وبعدها نملاه ببيانات التاسك
   document.getElementById('assignedTaskEditId').value = taskId;
   document.getElementById('assignedModalTitle').innerText = 'Edit Task';
   document.getElementById('assignedSubmitBtn').innerText = 'Save Changes';
   document.getElementById('assignedTaskTitle').value = task.title || '';
   document.getElementById('assignedTaskScope').value = task.scope || '';
   document.getElementById('assignedTaskPriority').value = task.priority || 'Medium';
-  setAssignedLabelValue(task.labels || '');
+  document.getElementById('assignedTaskLabels').value = task.labels || '';
   document.getElementById('assignedTaskStatus').value = task.status || 'To Do';
   document.getElementById('assignedTaskDeadline').value = task.deadline || '';
   document.querySelectorAll('.assignee-item-cb').forEach(cb => { cb.checked = normalizeId(cb.value) === normalizeId(task.userId); });
   updateSelectedAssigneesEmails();
-  fillRepeatFields(task);
 }
 
 function saveEditedAssignedTask(editId) {
@@ -2969,14 +1461,13 @@ function saveEditedAssignedTask(editId) {
   task.title = document.getElementById('assignedTaskTitle').value;
   task.scope = document.getElementById('assignedTaskScope').value;
   task.priority = document.getElementById('assignedTaskPriority').value;
-  task.labels = getAssignedLabelValue();
-  setTaskStatus(task, document.getElementById('assignedTaskStatus').value);
+  task.labels = document.getElementById('assignedTaskLabels').value;
+  task.status = document.getElementById('assignedTaskStatus').value;
   task.deadline = document.getElementById('assignedTaskDeadline').value;
-  if (ticked.length === 1) { task.userId = ticked[0].value; task.assignee = ticked[0].getAttribute('data-name'); }
-  applyRecurrenceToTask(task, readRepeatSettings());
+  if (ticked.length === 1) { task.userId = ticked[0].value; task.assignee = ticked[0].getAttribute('data-name'); }   // نقل التاسك لشخص تاني
   const deadlineChanged = oldDeadline !== task.deadline;
   const assigneeChanged = normalizeId(oldUserId) !== normalizeId(task.userId);
-  if (deadlineChanged) task.reminderSent = false;
+  if (deadlineChanged) task.reminderSent = false;   // الديدلاين اتغير: التنبيه يشتغل من جديد
   task.updatedAt = Date.now();
   closeModal('assignedTaskModal');
   syncAndUpgradeSystemFile();
@@ -3089,7 +1580,7 @@ function buildDynamicTeamUI() {
   const dropdownContainer = document.getElementById('assigneeDropdownList');
   const filterSelect = document.getElementById('assigneeFilter');
   if (!dropdownContainer || !filterSelect) return;
-  const availableMembers = getAssignableMembers();
+  const availableMembers = getAssignableMembers();   // الأدمن بيشوف يوزرز التيم بتاعه بس (managedUsers)
   let dropdownHTML = `<label class="dropdown-item-option" style="border-bottom: 1px solid var(--border-color); background-color: var(--input-bg);"><input type="checkbox" id="selectAllAssignees" onchange="toggleSelectAllAssignees(this)"> [ Select All / اختيار الكل ]</label>`;
 
   availableMembers.forEach(member => {
@@ -3109,33 +1600,6 @@ function buildDynamicTeamUI() {
 
 function escapeHTML(str) { return String(str == null ? '' : str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
 
-// ===== Creator popup =====
-function openCreatorModal() { document.getElementById('creatorModal').style.display = 'flex'; }
-function closeCreatorModal() { document.getElementById('creatorModal').style.display = 'none'; }
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { const m = document.getElementById('creatorModal'); if (m && m.style.display === 'flex') closeCreatorModal(); }
-});
-function copyCreatorText(text, btn) {
-  const done = function() { const old = btn.innerText; btn.innerText = 'Copied ✓'; setTimeout(function() { btn.innerText = old; }, 1500); };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(function() { creatorCopyFallback(text); done(); });
-  } else { creatorCopyFallback(text); done(); }
-}
-function creatorCopyFallback(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); } catch (err) {}
-  document.body.removeChild(ta);
-}
-function sendCreatorFeedback() {
-  const name = (typeof currentUserInfo !== 'undefined' && currentUserInfo) ? currentUserInfo.name : 'Unknown';
-  const role = (typeof currentUserInfo !== 'undefined' && currentUserInfo) ? currentUserInfo.role : 'Unknown';
-  const subject = 'Task Tracker Feedback - ' + name + ' (' + role + ')';
-  const body = 'User: ' + name + '\nRole: ' + role + '\n\nFeedback / Issue:\n';
-  window.location.href = 'mailto:aelsayed30@thecontactcentre.ae?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-}
-
 window.onload = function() {
   validateTeamConfig();
   buildDynamicTeamUI();
@@ -3144,9 +1608,8 @@ window.onload = function() {
   renderKanban();
   renderAssignedKanban();
   renderRoutines();
-  renderMeetings();
   startCentralAutoFetchLoop();
-  setTimeout(function() { processRecurringTasks(); sendPendingRecurringMails(); checkUpcomingDeadlinesAndAlert(); }, 1500);
+  setTimeout(checkUpcomingDeadlinesAndAlert, 1500);
 }
 </script>
 </body>
